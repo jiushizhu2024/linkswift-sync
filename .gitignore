@@ -5,3 +5,4 @@ __pycache__/
 cache/
 config/jobs.json
 config/rclone.conf
+config/admin.json

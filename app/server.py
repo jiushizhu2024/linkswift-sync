@@ -33,11 +33,13 @@ import logging
 import threading
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.cookies import SimpleCookie
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse, parse_qs
 
 import engine
+import auth
 
 APP = "linkswift-sync"
 WEB_ROOT = Path(__file__).resolve().parent / "web"
@@ -196,14 +198,47 @@ class Handler(BaseHTTPRequestHandler):
             return json.loads(self.rfile.read(ln) or b"{}")
         return {}
 
+    def _token(self) -> str | None:
+        """从 Cookie 或 Authorization 头提取 session token。"""
+        # 1) Authorization: Bearer <token>
+        auth_hdr = self.headers.get("Authorization", "")
+        if auth_hdr.startswith("Bearer "):
+            return auth_hdr[7:].strip()
+        # 2) Cookie: session=<token>
+        ck = self.headers.get("Cookie", "")
+        if ck:
+            try:
+                c = SimpleCookie()
+                c.load(ck)
+                if "session" in c:
+                    return c["session"].value
+            except Exception:
+                pass
+        return None
+
+    def _require_auth(self) -> str | None:
+        """返回已认证用户名; 未登录则发送 401 并返回 None。"""
+        user = auth.AUTH.check_token(self._token())
+        if not user:
+            self._json({"error": "未登录", "code": "UNAUTHORIZED"}, 401)
+            return None
+        return user
+
     # ---- routing ----
     def do_GET(self) -> None:
         parts = urlparse(self.path)
         path = parts.path
         qs = parse_qs(parts.query)
 
+        # 公开: 前端页面 + auth 状态查询
         if path == "/" or path == "/index.html":
             return self._serve_index()
+        if path == f"{API_PREFIX}/auth/status":
+            return self._json(auth.AUTH.status(self._token()))
+
+        # 以下全部需要登录
+        if not self._require_auth():
+            return
         if path == f"{API_PREFIX}/status":
             return self._json({"state": STATES, "log_len": len(LOG_RING)})
         if path == f"{API_PREFIX}/remotes":
@@ -239,6 +274,59 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parts = urlparse(self.path)
         path = parts.path
+
+        # 公开: 登录
+        if path == f"{API_PREFIX}/auth/login":
+            data = self._read_body()
+            try:
+                result = auth.AUTH.login(
+                    data.get("username", ""), data.get("password", "")
+                )
+                # 设置 Cookie
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Set-Cookie", f"session={result['token']}; Path=/; HttpOnly; SameSite=Strict")
+                body = json.dumps(result, ensure_ascii=False).encode("utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except ValueError as e:
+                return self._json({"error": str(e)}, 401)
+            except Exception as e:
+                return self._json({"error": str(e)}, 500)
+
+        # 以下需要登录
+        if not self._require_auth():
+            return
+
+        if path == f"{API_PREFIX}/auth/logout":
+            auth.AUTH.logout(self._token())
+            return self._json({"ok": True})
+
+        if path == f"{API_PREFIX}/auth/change":
+            data = self._read_body()
+            user = auth.AUTH.check_token(self._token()) or ""
+            try:
+                result = auth.AUTH.change_password(
+                    username=user,
+                    old_password=data.get("old_password", ""),
+                    new_password=data.get("new_password", ""),
+                    new_username=data.get("new_username"),
+                )
+                # 改密成功后旧 session 已失效, 返回新 token 方便前端无感续期
+                login = auth.AUTH.login(result["username"], data.get("new_password", ""))
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Set-Cookie", f"session={login['token']}; Path=/; HttpOnly; SameSite=Strict")
+                body = json.dumps({"ok": True, "username": result["username"], "token": login["token"]}, ensure_ascii=False).encode("utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except ValueError as e:
+                return self._json({"error": str(e)}, 400)
+            except Exception as e:
+                return self._json({"error": str(e)}, 500)
+
         if path == f"{API_PREFIX}/openlist":
             data = self._read_body()
             name = (data.get("name") or "openlist").strip().lower()
@@ -285,6 +373,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_PUT(self) -> None:
         parts = urlparse(self.path)
         path = parts.path
+        if not self._require_auth():
+            return
         if path == f"{API_PREFIX}/remotes/raw":
             data = self._read_body()
             content = data.get("content", "")
@@ -316,6 +406,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self) -> None:
         parts = urlparse(self.path)
         path = parts.path
+        if not self._require_auth():
+            return
         if path.startswith(f"{API_PREFIX}/jobs/"):
             name = path.rsplit("/", 1)[-1]
             try:

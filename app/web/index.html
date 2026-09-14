@@ -60,6 +60,38 @@
 </style>
 </head>
 <body>
+
+<!-- 登录遮罩 -->
+<div id="login-overlay" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100">
+  <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:32px;width:360px;max-width:94vw">
+    <h2 style="margin:0 0 6px;text-align:center;color:var(--accent-2)">LinkSwift-sync</h2>
+    <p style="text-align:center;color:var(--muted);font-size:13px;margin:0 0 24px">请登录控制台</p>
+    <form id="login-form">
+      <div class="field"><label>用户名</label><input type="text" id="login-user" required style="width:100%"></div>
+      <div class="field"><label>密码</label><input type="password" id="login-pass" required style="width:100%"></div>
+      <button type="submit" class="primary" style="width:100%;padding:10px">登录</button>
+      <p id="login-err" style="color:var(--err);font-size:13px;margin:10px 0 0;text-align:center"></p>
+    </form>
+    <p class="hint" style="text-align:center;margin-top:16px">默认 admin / admin123 (首登需改密)</p>
+  </div>
+</div>
+
+<!-- 强制改密模态 -->
+<div class="modal-mask" id="pw-modal" style="display:none">
+  <div class="modal" style="width:420px">
+    <h3 style="margin:0 0 6px">首次登录 — 请修改密码</h3>
+    <p class="hint" style="margin:0 0 16px">为安全起见, 首次登录必须修改初始密码 (可同时改用户名)。</p>
+    <form id="pw-form">
+      <div class="field"><label>当前密码</label><input type="password" id="pw-old" required style="width:100%"></div>
+      <div class="field"><label>新用户名</label><input type="text" id="pw-user" style="width:100%"></div>
+      <div class="field"><label>新密码 (至少 6 位)</label><input type="password" id="pw-new" required style="width:100%"></div>
+      <div class="field"><label>确认新密码</label><input type="password" id="pw-confirm" required style="width:100%"></div>
+      <p id="pw-err" style="color:var(--err);font-size:13px;margin:6px 0"></p>
+      <div class="row"><button type="submit" class="primary">修改并登录</button></div>
+    </form>
+  </div>
+</div>
+
 <header>
   <h1>LinkSwift-sync</h1>
   <span class="sub">跨网盘高速传输网关 · 控制台</span>
@@ -67,6 +99,7 @@
     <button data-tab="jobs" class="active">任务</button>
     <button data-tab="remotes">网盘账号</button>
     <button data-tab="logs">运行日志</button>
+    <button onclick="doLogout()" style="color:var(--err)">退出登录</button>
   </nav>
 </header>
 <main>
@@ -217,10 +250,18 @@ let jobBeingEdited=null;
 let dlRemoteSel='';
 
 // ---------- API helpers ----------
+let SESSION_TOKEN = null;  // 内存保存; Cookie 也由浏览器自动带
+
 async function api(path, opts){
-  const r = await fetch(path, opts);
+  const headers = opts?.headers ? {...opts.headers} : {};
+  if(SESSION_TOKEN) headers['Authorization'] = 'Bearer '+SESSION_TOKEN;
+  if(opts?.body) headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  const r = await fetch(path, {...(opts||{}), headers});
   const j = await r.json().catch(()=>({}));
+  if(r.status===401){ showLogin(); throw new Error('未登录'); }
   if(!r.ok) throw new Error(j.error || ('HTTP '+r.status));
+  // 登录/改密返回里带 token 就存下来
+  if(j.token) SESSION_TOKEN = j.token;
   return j;
 }
 const get=(p)=>api(p);
@@ -427,9 +468,78 @@ async function loadLogs(){
   catch(e){ sel('log-box').textContent='加载失败: '+e.message; }
 }
 
+// ---------- auth ----------
+function showLogin(){
+  document.getElementById('login-overlay').style.display='flex';
+}
+function hideLogin(){
+  document.getElementById('login-overlay').style.display='none';
+}
+document.getElementById('login-form').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const u=document.getElementById('login-user').value;
+  const p=document.getElementById('login-pass').value;
+  document.getElementById('login-err').textContent='';
+  try{
+    const d=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    const j=await d.json();
+    if(!d.ok){ document.getElementById('login-err').textContent=j.error||'登录失败'; return; }
+    SESSION_TOKEN=j.token;
+    hideLogin();
+    if(j.must_change_password){ showPwModal(u); } else { loadJobs(); }
+  }catch(err){ document.getElementById('login-err').textContent=err.message; }
+});
+function showPwModal(user){
+  document.getElementById('pw-user').value=user;
+  document.getElementById('pw-old').value='';
+  document.getElementById('pw-new').value='';
+  document.getElementById('pw-confirm').value='';
+  document.getElementById('pw-err').textContent='';
+  document.getElementById('pw-modal').style.display='flex';
+}
+document.getElementById('pw-form').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const oldPw=document.getElementById('pw-old').value;
+  const newPw=document.getElementById('pw-new').value;
+  const confirm=document.getElementById('pw-confirm').value;
+  const newUser=document.getElementById('pw-user').value;
+  const errEl=document.getElementById('pw-err');
+  errEl.textContent='';
+  if(newPw!==confirm){ errEl.textContent='两次输入的新密码不一致'; return; }
+  if(newPw.length<6){ errEl.textContent='新密码至少 6 位'; return; }
+  try{
+    const r=await fetch('/api/auth/change',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SESSION_TOKEN},
+      body:JSON.stringify({old_password:oldPw,new_password:newPw,new_username:newUser})});
+    const j=await r.json();
+    if(!r.ok){ errEl.textContent=j.error||'修改失败'; return; }
+    SESSION_TOKEN=j.token;
+    document.getElementById('pw-modal').style.display='none';
+    loadJobs();
+  }catch(err){ errEl.textContent=err.message; }
+});
+async function doLogout(){
+  try{ await fetch('/api/auth/logout',{method:'POST',headers:{'Authorization':'Bearer '+(SESSION_TOKEN||'')}}); }catch(e){}
+  SESSION_TOKEN=null;
+  showLogin();
+}
+
+async function checkAuthOnLoad(){
+  try{
+    const r=await fetch('/api/auth/status');
+    const j=await r.json();
+    if(j.authenticated){
+      hideLogin();
+      if(j.must_change_password){ showPwModal(j.username); }
+      else{ loadJobs(); }
+    } else {
+      showLogin();
+    }
+  }catch(e){ showLogin(); }
+}
+
 // ---------- init ----------
-loadJobs();
-setInterval(()=>{ if(currentTab==='jobs') loadJobs(); },5000);
+checkAuthOnLoad();
+setInterval(()=>{ if(currentTab==='jobs' && SESSION_TOKEN) loadJobs(); },5000);
 </script>
 </body>
 </html>
