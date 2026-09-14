@@ -36,4 +36,13 @@ init_placeholder() {
 
 init_placeholder
 
-exec python3 /data/scripts/sync.py "$@"
+CMD_MODE="${1:-web}"
+if [ "$CMD_MODE" = "web" ]; then
+    exec python3 /data/scripts/server.py
+elif [ "$CMD_MODE" = "sync" ] || [ "$CMD_MODE" = "once" ] || [ "$CMD_MODE" = "check" ]; then
+    # 兼容旧的 CLI 模式(直接调用编排器)
+    exec python3 /data/scripts/sync.py "$@"
+else
+    echo "[entrypoint] 未知模式 '$CMD_MODE'; 支持 web|once|check|sync" >&2
+    exit 2
+fi

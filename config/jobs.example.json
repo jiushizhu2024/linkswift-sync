@@ -4,22 +4,32 @@
       "name": "example-aliyun-to-gdrive",
       "dl": {
         "remote": "aliyun:",
-        "path": "/backup/photos"
+        "path": "/backup/photos",
+        "schedule": "interval",
+        "interval_seconds": 300
       },
       "ups": [
         { "remote": "gdrive:", "path": "/mirror/photos" },
         { "remote": "onedrive:", "path": "/mirror/photos" }
-      ]
+      ],
+      "mode": "incremental",
+      "bidirectional": false,
+      "max_size": null,
+      "excludes": []
     },
     {
       "name": "example-directlink",
       "dl": {
         "url": "https://your-drive.example.com/shared/file.bin?token=xxx",
-        "out": "file.bin"
+        "out": "file.bin",
+        "schedule": "cron",
+        "cron": "0 2 * * *"
       },
       "ups": [
         { "remote": "qiniu:", "path": "/uploads/" }
-      ]
+      ],
+      "mode": "full",
+      "bidirectional": false
     }
   ]
 }

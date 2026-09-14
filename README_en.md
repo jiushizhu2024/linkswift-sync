@@ -25,9 +25,31 @@ docker pull ghcr.io/jiushizhu2024/linkswift-sync:latest
 ### Run
 
 ```bash
-docker compose up -d                                   # periodic sync
-docker compose run --rm linkswift-sync once            # run once then exit
+docker compose up -d                                   # start Web console (resident, built-in scheduler)
+docker compose run --rm linkswift-sync once            # run once then exit (CLI)
 ```
+
+Then open **http://<host>:8080** in your browser.
+
+---
+
+## Web Console
+
+A built-in Web console (no third-party deps, Python stdlib), with its design inspired by [TaoSync](https://github.com/dr34m-cn/taosync):
+
+| Feature | Description |
+|---------|-------------|
+| **Drives/Accounts** | Edit `rclone.conf` directly in the UI; paste accounts/Cookies; remotes auto-detected |
+| **Directory browser** | Visually browse source/target directories on a remote and fill paths |
+| **Job management** | Create/edit/delete/enable/disable sync jobs; manually trigger runs |
+| **Sync mode** | Full (target=source, delete extras) / Incremental (add/update only) / Add-only |
+| **Direction** | One-way; Two-way (source↔target mirror) |
+| **Schedule** | Manual one-shot / interval (sec) / cron (6-field) |
+| **Filters** | Max file size, exclude rules (rclone exclude patterns) |
+| **Logs** | Real-time per-run output; live status (running/success/failed) |
+| **Resume** | rclone `.partial` / aria2 `.aria2`, persistent cache volume |
+
+API prefix `/api/`: `GET /api/remotes`, `GET /api/list?remote=&path=`, `GET/POST/PUT/DELETE /api/jobs`, `POST /api/jobs/<name>/run`, `GET /api/logs`, etc.
 
 ---
 
@@ -54,6 +76,8 @@ Source drive (direct-link/remote) --multi-thread fast--> local cache --multi-thr
 ## Credits
 
 This project's approach is inspired by **[LinkSwift](https://github.com/hmjz100/LinkSwift)** (网盘直链下载助手), which is maintained by [hmjz100](https://github.com/hmjz100) as a fork of [网盘直链下载助手](https://github.com/syhyz1990/baiduyun). Thanks to the authors and their open-source contributions. This project does not attempt to bypass any cloud-drive throttling; transfer speed depends on the provider's API policy and your local bandwidth.
+
+The **Web console design (job management / sync modes / bidirectional / scheduling / real-time progress) is inspired by [TaoSync](https://github.com/dr34m-cn/taosync)**.
 
 ## Security
 

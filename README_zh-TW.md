@@ -21,15 +21,39 @@ docker pull ghcr.io/jiushizhu2024/linkswift-sync:latest
 
 ### 設定網盤遠端 & 任務
 
-1. 編輯 `config/rclone.conf` —— 定義你的網盤遠端（百度/阿里/Google Drive/OneDrive/S3/WebDAV 等，支援所有 rclone 後端）。
-2. 編輯 `config/jobs.json` —— 定義任務：一個來源（`dl`）+ 一到多個目標（`ups`）。範例見 `config/jobs.example.json`。
+> 建議：啟動後用 **Web 控制台**（`http://<host>:8080`）在 UI 裡完成全部設定，無需手寫設定檔。
+
+1. 編輯 `config/rclone.conf` —— 定義你的網盤遠端（百度/阿里/Google Drive/OneDrive/S3/WebDAV 等，支援所有 rclone 後端）。**在控制台「網盤帳號」頁可直接貼上/填寫，Cookie 類網盤填入對應驅動欄位即可。**
+2. 編輯 `config/jobs.json` —— 定義任務：一個來源（`dl`）+ 一到多個目標（`ups`）。**在控制台「任務」頁用 UI 建立**（選來源/目標目錄、同步模式、方向、定時）。範例見 `config/jobs.example.json`。
 
 ### 啟動
 
 ```bash
-docker compose up -d            # 週期同步
-docker compose run --rm linkswift-sync once   # 跑一輪後退出
+docker compose up -d            # 啟動 Web 控制台（常駐, 內建排程）
+docker compose run --rm linkswift-sync once   # 跑一輪後退出(命令列)
 ```
+
+然後瀏覽器打開：**http://<host>:8080**
+
+---
+
+## Web 控制台
+
+內建 Web 控制台（無第三方依賴，Python 標準庫實作），參考 [TaoSync](https://github.com/dr34m-cn/taosync) 的功能設計：
+
+| 功能 | 說明 |
+|------|------|
+| **網盤帳號** | 在 UI 直接編輯 `rclone.conf`，填寫各網盤帳號/Cookie；儲存後自動識別遠端 |
+| **目錄瀏覽** | 選擇遠端後，視覺化瀏覽來源/目標目錄結構，一鍵填入路徑 |
+| **任務管理** | 新增/編輯/刪除/啟停同步任務，手動觸發執行 |
+| **同步模式** | 全量（目標=來源，刪除多餘）/ 增量（僅新增更新）/ 僅新增 |
+| **同步方向** | 單向；雙向（來源↔目標互為鏡像） |
+| **定時** | 手動一次性 / 週期 interval（秒）/ cron（6 段表達式） |
+| **過濾** | 檔案大小上限、排除規則（rclone exclude 模式） |
+| **執行日誌** | 即時檢視每次執行輸出；狀態即時更新（執行中/成功/失敗） |
+| **斷點續傳** | rclone `.partial` / aria2 `.aria2`，快取卷持久化 |
+
+API 前置 `/api/`：`GET /api/remotes`、`GET /api/list?remote=&path=`、`GET/POST/PUT/DELETE /api/jobs`、`POST /api/jobs/<name>/run`、`GET /api/logs` 等。
 
 ---
 

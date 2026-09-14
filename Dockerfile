@@ -43,18 +43,20 @@ RUN set -eux; \
     aria2c --version | head -1; \
     rclone version | head -1
 
-# --- 复制编排器与启动脚本 ---
+# --- 复制编排器、引擎、启动脚本与控制台前端 ---
 COPY --chown=linkswift:linkswift app/*.py /data/scripts/
+COPY --chown=linkswift:linkswift app/web /data/scripts/web
 COPY --chown=linkswift:linkswift entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER linkswift
 WORKDIR /data
 
+# Web 控制台: 运行后端(内含常驻调度器)+ 提供前端
 EXPOSE 8080
 
 # 缓存卷可持久化: 断点续传依赖缓存里的 .aria2 控制文件与 .part 文件
 VOLUME ["/data/cache", "/data/config"]
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["sync"]
+CMD ["web"]

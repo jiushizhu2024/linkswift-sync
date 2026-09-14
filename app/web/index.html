@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinkSwift-sync 控制台</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --panel:#ffffff; --border:#cbd5e1; --text:#0f172a; --muted:#64748b;
+    --accent:#2563eb; --accent-2:#1d4ed8; --ok:#16a34a; --err:#dc2626; --warn:#d97706;
+    --radius:8px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
+  header{background:#fff;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:18px;margin:0;color:var(--accent-2)}
+  header .sub{color:var(--muted);font-size:13px}
+  nav{display:flex;gap:8px;margin-left:auto}
+  nav button{background:none;border:0;color:var(--muted);padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:14px}
+  nav button.active{background:var(--accent);color:#fff}
+  nav button:hover:not(.active){background:#e2e8f0}
+  main{max-width:1100px;margin:24px auto;padding:0 20px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+  .panel h2{margin:0 0 14px;font-size:16px;color:var(--text)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  label{font-size:13px;color:var(--muted)}
+  input[type=text],textarea,select{font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;color:var(--text)}
+  input[type=text]:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  button.primary{background:var(--accent);color:#fff;border:0;padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:14px}
+  button.primary:hover{background:var(--accent-2)}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--border);padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:13px}
+  button.ghost:hover{border-color:var(--accent)}
+  button.danger{background:#fff;color:var(--err);border:1px solid var(--border);padding:6px 12px;border-radius:var(--radius);cursor:pointer;font-size:13px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase}
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600}
+  .badge.ok{background:#dcfce7;color:#166534}
+  .badge.err{background:#fee2e2;color:#991b1b}
+  .badge.run{background:#dbeafe;color:#1e40af}
+  .badge.idle{background:#f1f5f9;color:#475569}
+  pre.logs{background:#0f172a;color:#e2e8f0;padding:14px;border-radius:var(--radius);font-size:12px;max-height:420px;overflow:auto;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-all}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+  form .field{margin-bottom:12px}
+  form .field label{display:block;margin-bottom:4px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  .bread{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+  .bread a{color:var(--accent);cursor:pointer}
+  .hidden{display:none}
+  .dir-item{padding:6px 8px;border-radius:4px;cursor:pointer}
+  .dir-item:hover{background:#e2e8f0}
+  .dir-item.file{padding-left:22px;color:var(--muted)}
+  .dir-item.folder{font-weight:600}
+  .modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#fff;border-radius:var(--radius);padding:24px;width:560px;max-width:94vw;max-height:90vh;overflow:auto}
+  .modal h3{margin:0 0 16px}
+  .modal .close{float:right;cursor:pointer;color:var(--muted);font-size:18px}
+  .inline{display:inline-flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>LinkSwift-sync</h1>
+  <span class="sub">跨网盘高速传输网关 · 控制台</span>
+  <nav>
+    <button data-tab="jobs" class="active">任务</button>
+    <button data-tab="remotes">网盘账号</button>
+    <button data-tab="logs">运行日志</button>
+  </nav>
+</header>
+<main>
+  <!-- TASKS TAB -->
+  <section id="tab-jobs">
+    <div class="panel">
+      <div class="row">
+        <h2 style="margin:0">同步任务</h2>
+        <div style="margin-left:auto" class="row">
+          <button class="primary" onclick="openJobModal()">+ 新建任务</button>
+          <button class="ghost" onclick="refreshAll()">刷新</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>名称</th><th>源</th><th>目标</th><th>模式</th><th>双向</th><th>定时</th><th>状态</th><th></th></tr></thead>
+        <tbody id="job-rows"><tr><td colspan="8" class="hint">加载中…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>任务说明</h2>
+      <ul class="hint" style="font-size:13px;line-height:1.8">
+        <li><b>源</b>：一个网盘远程 + 目录（也可填直链 url，交给 aria2 多线程断点下载）。</li>
+        <li><b>目标</b>：一个或多个网盘远程，默认取与源同名目录。</li>
+        <li><b>模式</b>：全量（目标镜像源，删除多余）/ 增量（仅新增更新，不删除）。</li>
+        <li><b>双向</b>：开启后源↔目标互为镜像（需单一目标）。</li>
+        <li><b>定时</b>：手动一次性 / 周期 interval / cron 表达式。</li>
+        <li>所有传输均断点续传（rclone .partial / aria2 .aria2，缓存卷持久化）。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- REMOTES TAB -->
+  <section id="tab-remotes" class="hidden">
+    <div class="panel">
+      <h2>网盘账号 / Cookie 配置</h2>
+      <p class="hint">此处即 <code>rclone.conf</code>。支持所有 rclone 后端（百度/阿里/Google Drive/OneDrive/S3/WebDAV/AList 等）。Cookie 类网盘填入对应驱动字段即可。也可在任意机器 <code>rclone config</code> 生成后整段粘贴这里。</p>
+      <div class="row" style="margin-bottom:12px">
+        <label>已识别远程：</label><span id="remote-names" class="hint">-</span>
+        <button class="ghost" type="button" onclick="loadRemoteRaw()">重新加载</button>
+      </div>
+      <textarea id="remote-conf" rows="16" style="width:100%;font-family:ui-monospace,Consolas,monospace" placeholder="# [webdav]&#10;type = webdav&#10;url = https://...&#10;user = ...&#10;pass = ...&#10;# [aliyun]&#10;type = alist&#10;..."></textarea>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" onclick="saveRemoteRaw()">保存配置</button>
+        <span id="remote-save-result" class="hint"></span>
+      </div>
+      <p class="hint">保存后，请在「任务」里选择远程 + 浏览目录。</p>
+    </div>
+  </section>
+
+  <!-- LOGS TAB -->
+  <section id="tab-logs" class="hidden">
+    <div class="panel">
+      <div class="row">
+        <h2 style="margin:0">运行日志</h2>
+        <button class="ghost" style="margin-left:auto" onclick="loadLogs()">刷新</button>
+      </div>
+      <pre class="logs" id="log-box">加载中…</pre>
+    </div>
+  </section>
+</main>
+
+<!-- JOB MODAL -->
+<div class="modal-mask" id="job-modal">
+  <div class="modal">
+    <span class="close" onclick="closeJobModal()">&times;</span>
+    <h3 id="job-modal-title">新建任务</h3>
+    <form id="job-form">
+      <div class="field"><label>任务名称（唯一）</label>
+        <input type="text" id="f-name" required style="width:100%"></div>
+
+      <div class="grid">
+        <div class="field"><label>源：远程</label>
+          <select id="f-dl-remote" style="width:100%"></select>
+          <button type="button" class="ghost" style="margin-top:6px" onclick="openBrowser('dl')">浏览源目录</button>
+          <div id="dl-browser"></div>
+        </div>
+        <div class="field"><label>源：路径</label>
+          <input type="text" id="f-dl-path" style="width:100%" placeholder="/photos">
+        </div>
+      </div>
+      <div class="field"><label>或直链 URL（可选，填了则用 aria2 多线程下载）</label>
+        <input type="text" id="f-dl-url" style="width:100%" placeholder="https://…/file?token=…">
+      </div>
+
+      <div class="field"><label>目标（一个或多个，JSON 数组）</label>
+        <textarea id="f-ups" rows="3" style="width:100%" placeholder='[{"remote":"gdrive:","path":"/mirror/photos"}]'></textarea>
+        <span class="hint">目标 path 留空则默认与源同名目录。</span>
+      </div>
+
+      <div class="grid">
+        <div class="field"><label>同步模式</label>
+          <select id="f-mode">
+            <option value="full">全量（目标=源，删除多余）</option>
+            <option value="incremental">增量（仅新增/更新）</option>
+            <option value="add_only">仅新增</option>
+          </select>
+        </div>
+        <div class="field"><label>定时</label>
+          <select id="f-schedule">
+            <option value="manual">手动一次性</option>
+            <option value="interval">周期 interval</option>
+            <option value="cron">cron</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="field hidden" id="f-interval-wrap"><label>间隔（秒）</label>
+          <input type="text" id="f-interval" value="300"></div>
+        <div class="field hidden" id="f-cron-wrap"><label>Cron（分 时 日 月 周）</label>
+          <input type="text" id="f-cron" placeholder="*/30 * * * *"><span class="hint"> 例如 "0 2 * * *" 每天 2:00</span></div>
+      </div>
+
+      <div class="grid">
+        <div class="field"><label>双向</label>
+          <select id="f-bidir"><option value="0">关闭</option><option value="1">开启（源↔目标）</option></select>
+        </div>
+        <div class="field"><label>文件大小上限（bytes，可选）</label>
+          <input type="text" id="f-maxsize" placeholder="留空不限"></div>
+      </div>
+      <div class="field"><label>排除规则（每行一个 rclone --exclude 模式）</label>
+        <textarea id="f-excludes" rows="2" style="width:100%" placeholder="*.tmp&#10;*.log"></textarea>
+      </div>
+      <div class="row">
+        <button type="submit" class="primary">保存</button>
+        <button type="button" class="ghost" onclick="closeJobModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ---------- state ----------
+let currentTab='jobs';
+let jobBeingEdited=null;
+let dlRemoteSel='';
+
+// ---------- API helpers ----------
+async function api(path, opts){
+  const r = await fetch(path, opts);
+  const j = await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(j.error || ('HTTP '+r.status));
+  return j;
+}
+const get=(p)=>api(p);
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+const put=(p,b)=>api(p,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+const del=(p)=>api(p,{method:'DELETE'});
+
+// ---------- tabs ----------
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{currentTab=b.dataset.tab;
+    document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));
+    ['jobs','remotes','logs'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden',t!==currentTab));
+    if(currentTab==='remotes') loadRemoteRaw();
+    if(currentTab==='logs') loadLogs();
+    if(currentTab==='jobs') loadJobs();
+  };
+});
+const sel=(id)=>document.getElementById(id);
+const esc=(s)=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- jobs ----------
+async function loadJobs(){
+  try{
+    const d=await get('/api/jobs');
+    const rows=d.jobs||[];
+    sel('job-rows').innerHTML = rows.length? rows.map(j=>{
+      const st=(d.states&&d.states[j.name])||{status:'idle'};
+      const stc={running:'run',success:'ok',error:'err',idle:'idle'}[st.status]||'idle';
+      const stl={running:'运行中',success:'成功',error:'失败',idle:'待命'}[st.status]||'待命';
+      const dlU=(j.dl&&j.dl.url)?'直链':'';
+      const srcLabel=(j.dl.remote||'')+(j.dl.path||'')+(dlU);
+      const ups=(j.ups||[]).map(u=>(u.remote||'')+(u.path||'')).join('<br>');
+      const mode={'full':'全量','incremental':'增量','add_only':'仅新增'}[j.mode]||j.mode;
+      const sch=(j.dl&&j.dl.schedule)||'manual';
+      const schLbl={'manual':'手动','interval':'每'+(j.dl.interval_seconds||300)+'s','cron':(j.dl.cron||'cron')}[sch]||'手动';
+      return `<tr>
+        <td>${esc(j.name)}</td>
+        <td>${esc(srcLabel)}</td>
+        <td>${ups}</td>
+        <td>${esc(mode)}</td>
+        <td>${j.bidirectional?'✅':'—'}</td>
+        <td>${esc(schLbl)}</td>
+        <td><span class="badge ${stc}">${stl}</span></td>
+        <td>
+          <button class="ghost" onclick="runJob('${esc(j.name)}')">运行</button>
+          <button class="ghost" onclick="editJob('${esc(j.name)}')">编辑</button>
+          <button class="danger" onclick="delJob('${esc(j.name)}')">删除</button>
+        </td></tr>`;
+    }).join('') : '<tr><td colspan="8" class="hint">还没有任务，点击「新建任务」创建。</td></tr>';
+  }catch(e){ sel('job-rows').innerHTML=`<tr><td colspan="8" class="hint">加载失败: ${esc(e.message)}</td></tr>`; }
+}
+async function runJob(name){ try{ await post(`/api/jobs/${encodeURIComponent(name)}/run`); alert('已触发任务 '+name); }catch(e){ alert(e.message);} }
+async function delJob(name){ if(!confirm('删除任务 '+name+' ?'))return; try{ await del(`/api/jobs/${encodeURIComponent(name)}`); loadJobs(); }catch(e){ alert(e.message);} }
+function refreshAll(){ loadJobs(); }
+
+// ---------- job modal ----------
+async function fillRemoteSelect(){
+  try{ const d=await get('/api/remotes'); if(d.remotes) sel('f-dl-remote').innerHTML=d.remotes.map(r=>`<option>${esc(r.replace(':',''))}</option>`).join('')||'<option value="">(无远程)</option>';
+  }catch(e){ sel('f-dl-remote').innerHTML=`<option value="">(加载失败)</option>`; }
+}
+function resetJobModal(){
+  sel('f-name').value=''; sel('f-dl-path').value=''; sel('f-dl-url').value='';
+  sel('f-ups').value='';
+  sel('f-mode').value='full'; sel('f-schedule').value='manual'; sel('f-bidir').value='0';
+  sel('f-maxsize').value=''; sel('f-excludes').value='';
+  sel('f-interval').value='300'; sel('f-cron').value='*/30 * * * *';
+  sel('job-modal-title').textContent='新建任务'; jobBeingEdited=null;
+  showScheduleFields(); fillRemoteSelect().then(()=>{ if(dlRemoteSel) sel('f-dl-remote').value=dlRemoteSel; });
+}
+function openJobModal(){ resetJobModal(); sel('job-modal').style.display='flex'; }
+function closeJobModal(){ sel('job-modal').style.display='none'; }
+function showScheduleFields(){
+  const s=sel('f-schedule').value;
+  sel('f-interval-wrap').classList.toggle('hidden', s!=='interval');
+  sel('f-cron-wrap').classList.toggle('hidden', s!=='cron');
+}
+sel('f-schedule').onchange=showScheduleFields;
+sel('f-dl-remote').onchange=()=>{ dlRemoteSel=sel('f-dl-remote').value; };
+
+sel('job-form').onsubmit=async(e)=>{
+  e.preventDefault();
+  const name=sel('f-name').value.trim();
+  const dlRemote=sel('f-dl-remote').value.match(/:$/) ? sel('f-dl-remote').value : sel('f-dl-remote').value+':';
+  const upsRaw=sel('f-ups').value.trim();
+  let ups=[];
+  if(upsRaw){ try{ ups=JSON.parse(upsRaw); }catch(err){ alert('目标 JSON 格式错误：'+err.message); return; } }
+  else{ ups=[{remote:dlRemote.match(/^[^:]+:/)[0]? dlRemote:'', path:sel('f-dl-path').value||''}]; if(!ups[0].remote){ alert('请选择目标远程'); return;} }
+
+  const dl={
+    remote:dlRemote,
+    path:sel('f-dl-path').value.trim(),
+    url:sel('f-dl-url').value.trim()||undefined,
+    schedule:sel('f-schedule').value,
+    interval_seconds: sel('f-schedule').value==='interval'?parseInt(sel('f-interval').value||'300'):undefined,
+    cron: sel('f-schedule').value==='cron'?sel('f-cron').value.trim():undefined,
+  };
+  // 默认目标 path 与源同名
+  const srcBase=dl.path.split('/').filter(Boolean).pop()||'';
+  ups=ups.map(u=>{ if(!u.path){ u.path='/'; } return u; });
+
+  const body={
+    name, dl, ups,
+    mode:sel('f-mode').value,
+    bidirectional: sel('f-bidir').value==='1',
+    max_size: sel('f-maxsize').value?parseInt(sel('f-maxsize').value):undefined,
+    excludes: sel('f-excludes').value.split('\n').map(x=>x.trim()).filter(Boolean),
+  };
+  try{
+    if(jobBeingEdited){ await put('/api/jobs/'+encodeURIComponent(name), body); }
+    else { await post('/api/jobs', body); }
+    closeJobModal(); loadJobs();
+  }catch(err){ alert(err.message); }
+};
+
+async function editJob(name){
+  try{
+    const j=await get('/api/jobs/'+encodeURIComponent(name));
+    resetJobModal();
+    jobBeingEdited=name; sel('job-modal-title').textContent='编辑任务 '+name;
+    sel('f-name').value=j.name;
+    sel('f-dl-path').value=j.dl.path||''; sel('f-dl-url').value=j.dl.url||'';
+    sel('f-ups').value=JSON.stringify(j.ups||[],null,2);
+    sel('f-mode').value=j.mode||'full';
+    sel('f-schedule').value=(j.dl&&j.dl.schedule)||'manual';
+    sel('f-interval').value=(j.dl&&j.dl.interval_seconds)||'300';
+    sel('f-cron').value=(j.dl&&j.dl.cron)||'*/30 * * * *';
+    sel('f-bidir').value=j.bidirectional?'1':'0';
+    sel('f-maxsize').value=j.max_size||'';
+    sel('f-excludes').value=(j.excludes||[]).join('\n');
+    showScheduleFields();
+    // select remote
+    dlRemoteSel=(j.dl.remote||'').replace(/:$/,'');
+    fillRemoteSelect().then(()=>{ sel('f-dl-remote').value=dlRemoteSel; });
+    sel('job-modal').style.display='flex';
+  }catch(e){ alert(e.message); }
+}
+
+// ---------- remote browser ----------
+async function openBrowser(which){
+  const remote=sel('f-dl-remote').value;
+  if(!remote){ alert('先选择远程'); return; }
+  await browseRemote(which, remote, '', true);
+}
+let browseCtx=null;
+async function browseRemote(which, remote, path, open){
+  const target=document.getElementById(which==='dl'?'dl-browser':'up-browser');
+  try{
+    if(browseCtx!==target) browseCtx=target;
+    const d=await get('/api/list?remote='+encodeURIComponent(remote)+'&path='+encodeURIComponent(path));
+    const crumbs=(d.path||'/').split('/').filter(Boolean);
+    let acc='';
+    let html=`<div class="bread"><span>root</span>`;
+    crumbs.forEach((c,i)=>{ acc+='/'+c; html+=`<span>/</span><a onclick="browseRemote('${which}','${remote}','${acc}')">${esc(c)}</a>`; });
+    html+=`</div><div style="margin-top:8px">`;
+    if(path) html+=`<div class="dir-item folder" onclick="browseRemote('${which}','${remote}','${path.split('/').slice(0,-1).join('/')}')">⬆ 上级</div>`;
+    (d.dirs||[]).forEach(dd=>{ html+=`<div class="dir-item folder" onclick="browseRemote('${which}','${remote}','${(path?path+('/') : '')+dd}')">📁 ${esc(dd)}</div>`; });
+    (d.files||[]).slice(0,50).forEach(f=>{ html+=`<div class="dir-item file">📄 ${esc(f.name)} (${fmt(f.size)})</div>`; });
+    html+=`<div class="row" style="margin-top:10px">
+        <button class="primary" type="button" onclick="usePath('${which}','${remote}','${esc(path)}')">使用此目录</button>
+        <button class="ghost" type="button" onclick="closeBrowse('${which}')">收起</button></div></div>`;
+    target.innerHTML=html;
+  }catch(e){ target.innerHTML=`<div class="hint">浏览失败: ${esc(e.message)}</div>`; }
+}
+function usePath(which, remote, path){
+  if(which==='dl'){ sel('f-dl-remote').value=remote; dlRemoteSel=remote.replace(/:$/,''); sel('f-dl-path').value=path; }
+  else { /* up 浏览器简化, 目标用 JSON 手填 */ }
+}
+function closeBrowse(which){
+  document.getElementById(which==='dl'?'dl-browser':'up-browser').innerHTML='';
+}
+function fmt(n){ if(n==null) return ''; if(n<1024) return n+'B'; if(n<1048576) return (n/1024).toFixed(1)+'KB'; if(n<1073741824) return (n/1048576).toFixed(1)+'MB'; return (n/1073741824).toFixed(2)+'GB'; }
+
+// ---------- remotes ----------
+async function loadRemoteRaw(){
+  try{ const d=await get('/api/remotes/raw'); sel('remote-conf').value=d.content||''; }
+  catch(e){ sel('remote-conf').value='# 加载失败: '+e.message; }
+  refreshRemoteNames();
+}
+async function refreshRemoteNames(){
+  try{ const d=await get('/api/remotes'); sel('remote-names').textContent=(d.remotes||[]).join(', ')||'(无)'; }
+  catch(e){ sel('remote-names').textContent='(读取失败)'; }
+}
+async function saveRemoteRaw(){
+  const content=sel('remote-conf').value;
+  try{ 
+    const d=await put('/api/remotes/raw',{content});
+    sel('remote-save-result').textContent='已保存 ✓ 识别远程: '+(d.remotes||[]).join(', ');
+    refreshRemoteNames();
+  }catch(e){ sel('remote-save-result').textContent='保存失败: '+e.message; }
+}
+
+// ---------- logs ----------
+async function loadLogs(){
+  try{ const d=await get('/api/logs?lines=300'); sel('log-box').textContent=(d.logs||[]).join('\n')||'(暂无日志)'; }
+  catch(e){ sel('log-box').textContent='加载失败: '+e.message; }
+}
+
+// ---------- init ----------
+loadJobs();
+setInterval(()=>{ if(currentTab==='jobs') loadJobs(); },5000);
+</script>
+</body>
+</html>
