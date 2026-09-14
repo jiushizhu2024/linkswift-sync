@@ -239,6 +239,34 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parts = urlparse(self.path)
         path = parts.path
+        if path == f"{API_PREFIX}/openlist":
+            data = self._read_body()
+            name = (data.get("name") or "openlist").strip().lower()
+            url = (data.get("url") or "").strip()
+            user = (data.get("user") or "").strip()
+            password = (data.get("pass") or "").strip()
+            if not url:
+                return self._json({"error": "url 必填 (OpenList DAV 地址, 如 http://openlist:5244/dav)"}, 400)
+            try:
+                # 先测连通
+                tmp = engine.add_webdav_remote(name, url, user, password)
+                t = engine.test_remote(name)
+                if not t.get("ok"):
+                    # 失败则回滚追加的配置段
+                    engine.remove_remote(name)
+                    return self._json({"error": f"OpenList 连接失败: {t.get('error')}", "detail": t}, 500)
+                return self._json({"ok": True, "remotes": engine.list_remotes(), "name": name})
+            except Exception as e:
+                return self._json({"error": str(e)}, 500)
+        if path == f"{API_PREFIX}/remotes/test":
+            data = self._read_body()
+            remote = (data.get("remote") or "").strip()
+            path_ = (data.get("path") or "").strip()
+            if not remote:
+                return self._json({"error": "remote 必填"}, 400)
+            t = engine.test_remote(remote, path_)
+            code = 200 if t.get("ok") else 500
+            return self._json(t, code)
         if path == f"{API_PREFIX}/jobs":
             data = self._read_body()
             try:

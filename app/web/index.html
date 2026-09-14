@@ -101,7 +101,20 @@
   <!-- REMOTES TAB -->
   <section id="tab-remotes" class="hidden">
     <div class="panel">
-      <h2>网盘账号 / Cookie 配置</h2>
+      <h2>🌐 一键接入 OpenList / AList (WebDAV)</h2>
+      <p class="hint">最快的方式：填你已有 OpenList（或 AList）的 DAV 地址 + 账号密码，即可把 OpenList 挂载的所有网盘纳入管理（类似 taoSync 接入 OpenList 引擎）。默认 DAV 路径为 <code>/dav</code>（如 <code>http://openlist:5244/dav</code>）。</p>
+      <div class="grid">
+        <div class="field"><label>远程名称</label><input type="text" id="ol-name" value="openlist" style="width:100%"></div>
+        <div class="field"><label>DAV 地址</label><input type="text" id="ol-url" placeholder="http://openlist:5244/dav" style="width:100%"></div>
+        <div class="field"><label>用户名</label><input type="text" id="ol-user" style="width:100%"></div>
+        <div class="field"><label>密码</label><input type="password" id="ol-pass" style="width:100%"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="primary" onclick="addOpenList()">连接 OpenList</button>
+        <span id="ol-result" class="hint"></span>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+      <h2>网盘账号 / Cookie 配置（高级，手动编辑 rclone.conf）</h2>
       <p class="hint">此处即 <code>rclone.conf</code>。支持所有 rclone 后端（百度/阿里/Google Drive/OneDrive/S3/WebDAV/AList 等）。Cookie 类网盘填入对应驱动字段即可。也可在任意机器 <code>rclone config</code> 生成后整段粘贴这里。</p>
       <div class="row" style="margin-bottom:12px">
         <label>已识别远程：</label><span id="remote-names" class="hint">-</span>
@@ -381,6 +394,15 @@ function closeBrowse(which){
 function fmt(n){ if(n==null) return ''; if(n<1024) return n+'B'; if(n<1048576) return (n/1024).toFixed(1)+'KB'; if(n<1073741824) return (n/1048576).toFixed(1)+'MB'; return (n/1073741824).toFixed(2)+'GB'; }
 
 // ---------- remotes ----------
+async function addOpenList(){
+  const body={name:sel('ol-name').value||'openlist', url:sel('ol-url').value, user:sel('ol-user').value, pass:sel('ol-pass').value};
+  sel('ol-result').textContent='连接中…';
+  try{
+    const d=await post('/api/openlist',body);
+    sel('ol-result').textContent='✓ 已接入, 远程: '+(d.remotes||[]).join(', ');
+    refreshRemoteNames(); loadRemoteRaw();
+  }catch(e){ sel('ol-result').textContent='失败: '+e.message; }
+}
 async function loadRemoteRaw(){
   try{ const d=await get('/api/remotes/raw'); sel('remote-conf').value=d.content||''; }
   catch(e){ sel('remote-conf').value='# 加载失败: '+e.message; }

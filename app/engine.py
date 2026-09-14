@@ -125,6 +125,46 @@ def list_remotes() -> list[str]:
     return p.stdout.split()
 
 
+def add_webdav_remote(name: str, url: str, user: str, password: str) -> None:
+    """向 rclone.conf 追加一个 WebDAV 远程。用于接入 OpenList/AList 的 DAV 服务。"""
+    section = f"\n[{name}]\ntype = webdav\nurl = {url}\nvendor = other\nuser = {user}\npass = {password}\n"
+    conf = Path(REMOTES_FILE)
+    conf.parent.mkdir(parents=True, exist_ok=True)
+    conf.write_text(conf.read_text(encoding="utf-8") + section, encoding="utf-8")
+
+
+def test_remote(remote: str, path: str = "") -> dict[str, Any]:
+    """测试远程连通性(列出其根或指定目录)。返回 ok / error。"""
+    target = remote if remote.endswith(":") else remote + ":"
+    if path:
+        target = target + path.lstrip("/")
+    try:
+        _ = lsf(remote, path)
+        return {"ok": True, "target": target}
+    except Exception as e:
+        return {"ok": False, "target": target, "error": str(e)}
+
+
+def remove_remote(name: str) -> None:
+    """从 rclone.conf 移除指定远程段(按 [name] 段落)。"""
+    conf = Path(REMOTES_FILE)
+    if not conf.exists():
+        return
+    lines = conf.read_text(encoding="utf-8").splitlines()
+    out: list[str] = []
+    skip = False
+    for line in lines:
+        if line.startswith("[") and line.endswith("]"):
+            skip = line[1:-1].strip() == name
+            if not skip:
+                out.append(line)
+            continue
+        if skip:
+            continue
+        out.append(line)
+    conf.write_text("\n".join(out).rstrip("\n") + "\n", encoding="utf-8")
+
+
 def check_remotes(remotes: list[str]) -> None:
     known = list_remotes()
     for r in remotes:

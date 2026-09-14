@@ -20,6 +20,7 @@ FROM alpine:3.20
 
 # --- 安装运行时, 合并到一个 RUN 以减小层数 ---
 # aria2 / rclone 位于 Alpine community 仓库, 其余在 main; 基础镜像默认已启用两者
+# util-linux 提供 setpriv, 用于 entrypoint 初始化后降权
 RUN set -eux; \
     apk add --no-cache \
         aria2 \
@@ -31,9 +32,10 @@ RUN set -eux; \
         wget \
         tzdata \
         py3-pip \
-        proxychains-ng; \
+        proxychains-ng \
+        util-linux; \
     \
-    # 非 root 运行(安全第一)
+    # 创建运行用户与目录(属主 linkswift)
     addgroup -S linkswift; \
     adduser -S -G linkswift -h /data linkswift; \
     mkdir -p /data/cache /data/config /data/state /data/scripts; \
@@ -49,7 +51,7 @@ COPY --chown=linkswift:linkswift app/web /data/scripts/web
 COPY --chown=linkswift:linkswift entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-USER linkswift
+# 以 root 启动以修正 bind-mount 目录属主, entrypoint 内会降权到 linkswift
 WORKDIR /data
 
 # Web 控制台: 运行后端(内含常驻调度器)+ 提供前端
