@@ -1,9 +1,10 @@
-# LinkSwift-sync 一键部署(amd64 / arm64)
-# 用法:
-#   1) 编辑 ./config/jobs.json 与 ./config/rclone.conf
+# LinkSwift-sync one-click deployment (amd64 / arm64)
+# Usage:
+#   1) Edit ./config/jobs.json and ./config/rclone.conf
 #   2) docker compose up -d
 #
-# 多架构镜像: 构建时指定 --platform linux/amd64,linux/arm64 即可同时产出两架构。
+# Multi-arch image: specify --platform linux/amd64,linux/arm64 at build time to
+# produce both architectures.
 
 services:
   linkswift-sync:
@@ -11,22 +12,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # 若要一次构建多架构, 用 buildx:
+      # To build multi-arch in one shot, use buildx:
       # docker buildx build --platform linux/amd64,linux/arm64 -t linkswift-sync:latest --push .
     container_name: linkswift-sync
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-8080}:8080"        # Web 控制台
+      - "${WEB_PORT:-8080}:8080"        # Web console
     environment:
       - TZ=Asia/Shanghai
       - CACHE_DIR=/data/cache
       - CONFIG_DIR=/data/config
-      - SYNC_INTERVAL=${SYNC_INTERVAL:-300}   # 周期同步间隔(秒)
+      - SYNC_INTERVAL=${SYNC_INTERVAL:-300}   # periodic sync interval (seconds)
       - RCLONE_TRANSFERS=${RCLONE_TRANSFERS:-16}
       - RCLONE_CHECKERS=${RCLONE_CHECKERS:-16}
     volumes:
-      # 配置(你的 remote 定义 + 任务)
+      # Config (your remote definitions + jobs)
       - ./config:/data/config
-      # 缓存: 必须持久化, 断点续传依赖它
+      # Cache: must be persistent, resume depends on it
       - ./cache:/data/cache
-    command: ["web"]   # 启动 Web 控制台(常驻); 也可 ["once"] 跑一轮后退出
+    command: ["web"]   # start Web console (resident); or ["once"] to run once then exit
