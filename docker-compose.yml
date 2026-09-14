@@ -1,23 +1,16 @@
 # LinkSwift-sync one-click deployment (amd64 / arm64)
+# Uses the pre-built GHCR image (multi-arch: linux/amd64 + linux/arm64).
 # Usage:
 #   1) Edit ./config/jobs.json and ./config/rclone.conf
 #   2) docker compose up -d
-#
-# Multi-arch image: specify --platform linux/amd64,linux/arm64 at build time to
-# produce both architectures.
 
 services:
   linkswift-sync:
-    image: linkswift-sync:${TAG:-latest}
-    build:
-      context: .
-      dockerfile: Dockerfile
-      # To build multi-arch in one shot, use buildx:
-      # docker buildx build --platform linux/amd64,linux/arm64 -t linkswift-sync:latest --push .
+    image: ghcr.io/jiushizhu2024/linkswift-sync:latest
     container_name: linkswift-sync
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-8080}:8080"        # Web console
+      - "8080:8080"        # Web console
     environment:
       - TZ=Asia/Shanghai
       - CACHE_DIR=/data/cache
