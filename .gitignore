@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.log
+.env
+cache/
+config/jobs.json
+config/rclone.conf

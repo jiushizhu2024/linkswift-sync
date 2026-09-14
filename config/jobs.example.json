@@ -1,0 +1,25 @@
+{
+  "jobs": [
+    {
+      "name": "example-aliyun-to-gdrive",
+      "dl": {
+        "remote": "aliyun:",
+        "path": "/backup/photos"
+      },
+      "ups": [
+        { "remote": "gdrive:", "path": "/mirror/photos" },
+        { "remote": "onedrive:", "path": "/mirror/photos" }
+      ]
+    },
+    {
+      "name": "example-directlink",
+      "dl": {
+        "url": "https://your-drive.example.com/shared/file.bin?token=xxx",
+        "out": "file.bin"
+      },
+      "ups": [
+        { "remote": "qiniu:", "path": "/uploads/" }
+      ]
+    }
+  ]
+}

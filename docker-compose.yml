@@ -1,0 +1,30 @@
+# LinkSwift-sync 一键部署(amd64 / arm64)
+# 用法:
+#   1) 编辑 ./config/jobs.json 与 ./config/rclone.conf
+#   2) docker compose up -d
+#
+# 多架构镜像: 构建时指定 --platform linux/amd64,linux/arm64 即可同时产出两架构。
+
+services:
+  linkswift-sync:
+    image: linkswift-sync:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # 若要一次构建多架构, 用 buildx:
+      # docker buildx build --platform linux/amd64,linux/arm64 -t linkswift-sync:latest --push .
+    container_name: linkswift-sync
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+      - CACHE_DIR=/data/cache
+      - CONFIG_DIR=/data/config
+      - SYNC_INTERVAL=${SYNC_INTERVAL:-300}   # 周期同步间隔(秒)
+      - RCLONE_TRANSFERS=${RCLONE_TRANSFERS:-16}
+      - RCLONE_CHECKERS=${RCLONE_CHECKERS:-16}
+    volumes:
+      # 配置(你的 remote 定义 + 任务)
+      - ./config:/data/config
+      # 缓存: 必须持久化, 断点续传依赖它
+      - ./cache:/data/cache
+    command: ["sync"]   # 或 ["once"] 跑一轮后退出
