@@ -285,6 +285,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(engine.lsf(remote, p))
             except Exception as e:
                 return self._json({"error": str(e)}, 500)
+        if path == f"{API_PREFIX}/directlink":
+            remote = (qs.get("remote") or [""])[0]
+            p = (qs.get("path") or [""])[0]
+            try:
+                url = engine.get_direct_link(remote, p)
+                return self._json({"ok": True, "url": url})
+            except Exception as e:
+                return self._json({"error": str(e)}, 500)
         if path == f"{API_PREFIX}/jobs":
             try:
                 jobs = engine.load_jobs()

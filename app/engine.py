@@ -156,6 +156,21 @@ def test_remote(remote: str, path: str = "") -> dict[str, Any]:
         return {"ok": False, "target": target, "error": str(e)}
 
 
+def get_direct_link(remote: str, path: str = "") -> str:
+    """用 rclone link 获取直链(适用于支持分享/直链的后端如 webdav)。
+    返回直链 URL; 后端不支持则抛异常。"""
+    target = remote if remote.endswith(":") else remote + ":"
+    if path:
+        target = target + path.lstrip("/")
+    p = run([*_rc(), "link", target], timeout=15)
+    if p.returncode != 0:
+        raise RuntimeError(f"rclone link 失败 rc={p.returncode}: {p.stderr[-300:].strip()}")
+    url = p.stdout.strip()
+    if not url:
+        raise RuntimeError("rclone link 返回空(该后端可能不支持直链)")
+    return url
+
+
 def remove_remote(name: str) -> None:
     """从 rclone.conf 移除指定远程段(按 [name] 段落)。"""
     conf = Path(REMOTES_FILE)

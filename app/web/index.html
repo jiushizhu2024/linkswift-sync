@@ -232,11 +232,16 @@
         </div>
       </div>
       <div class="field"><label id="lbl-job-url"></label>
-        <input type="text" id="f-dl-url" style="width:100%">
+        <div class="row" style="align-items:flex-end">
+          <input type="text" id="f-dl-url" style="flex:1">
+          <button type="button" class="ghost" onclick="autoGetDirectLink()" id="btn-auto-link" style="white-space:nowrap"></button>
+        </div>
+        <span class="hint" id="hint-url"></span>
       </div>
 
       <div class="field"><label id="lbl-job-ups"></label>
-        <textarea id="f-ups" rows="3" style="width:100%"></textarea>
+        <div id="target-list" style="display:flex;flex-direction:column;gap:10px"></div>
+        <button type="button" class="ghost" onclick="addTargetRow()" id="btn-add-target" style="margin-top:8px"></button>
         <span class="hint" id="hint-ups"></span>
       </div>
 
@@ -327,7 +332,11 @@ const I18N = {
     job_modal_title_new:"新建任务",job_modal_title_edit:"编辑任务 ",
     lbl_job_name:"任务名称（唯一）",lbl_job_dl_remote:"源：远程",btn_browse_dl:"浏览源目录",
     lbl_job_dl_path:"源：路径",lbl_job_url:"或直链 URL（可选，填了则用 aria2 多线程下载）",
-    lbl_job_ups:"目标（一个或多个，JSON 数组）",hint_ups:"目标 path 留空则默认与源同名目录。",
+    btn_auto_link:"自动获取直链",hint_url:"选好源远程+路径后点击自动获取直链",
+    lbl_job_ups:"目标网盘",hint_ups:"目标 path 留空则默认与源同名目录。",
+    btn_add_target:"+ 添加目标",btn_target_browse:"浏览",
+    hint_target_empty:"(未添加目标, 至少添加一个)",
+    auto_link_err:"获取直链失败: ",auto_link_ok:"✓ 直链已填入",
     opt_mode_full:"全量（目标=源，删除多余）",opt_mode_incremental:"增量（仅新增/更新）",opt_mode_addonly:"仅新增",
     opt_sched_manual:"手动一次性",opt_sched_interval:"周期 interval",opt_sched_cron:"cron",
     lbl_interval:"间隔（秒）",lbl_cron:"Cron（分 时 日 月 周）",hint_cron:"例如 \"0 2 * * *\" 每天 2:00",
@@ -381,7 +390,11 @@ const I18N = {
     job_modal_title_new:"新建任務",job_modal_title_edit:"編輯任務 ",
     lbl_job_name:"任務名稱（唯一）",lbl_job_dl_remote:"來源：遠端",btn_browse_dl:"瀏覽來源目錄",
     lbl_job_dl_path:"來源：路徑",lbl_job_url:"或直鏈 URL（可選，填了則用 aria2 多線程下載）",
-    lbl_job_ups:"目標（一個或多個，JSON 陣列）",hint_ups:"目標 path 留空則預設與來源同名目錄。",
+    btn_auto_link:"自動獲取直鏈",hint_url:"選好來源遠端+路徑後點擊自動獲取直鏈",
+    lbl_job_ups:"目標網盤",hint_ups:"目標 path 留空則預設與來源同名目錄。",
+    btn_add_target:"+ 添加目標",btn_target_browse:"瀏覽",
+    hint_target_empty:"(未添加目標, 至少添加一個)",
+    auto_link_err:"獲取直鏈失敗: ",auto_link_ok:"✓ 直鏈已填入",
     opt_mode_full:"全量（目標=來源，刪除多餘）",opt_mode_incremental:"增量（僅新增/更新）",opt_mode_addonly:"僅新增",
     opt_sched_manual:"手動一次性",opt_sched_interval:"週期 interval",opt_sched_cron:"cron",
     lbl_interval:"間隔（秒）",lbl_cron:"Cron（分 時 日 月 週）",hint_cron:"例如 \"0 2 * * *\" 每天 2:00",
@@ -435,7 +448,11 @@ const I18N = {
     job_modal_title_new:"New Job",job_modal_title_edit:"Edit Job ",
     lbl_job_name:"Job Name (unique)",lbl_job_dl_remote:"Source: Remote",btn_browse_dl:"Browse Source",
     lbl_job_dl_path:"Source: Path",lbl_job_url:"Or Direct URL (optional, aria2 multi-thread)",
-    lbl_job_ups:"Targets (one or more, JSON array)",hint_ups:"Empty path defaults to same as source.",
+    btn_auto_link:"Auto Fetch Link",hint_url:"Select source remote+path then click to auto-fetch direct link",
+    lbl_job_ups:"Target Clouds",hint_ups:"Empty path defaults to same as source.",
+    btn_add_target:"+ Add Target",btn_target_browse:"Browse",
+    hint_target_empty:"(no targets, add at least one)",
+    auto_link_err:"Failed to get direct link: ",auto_link_ok:"✓ Direct link filled",
     opt_mode_full:"Full (mirror, delete extras)",opt_mode_incremental:"Incremental (new/update)",opt_mode_addonly:"Add only",
     opt_sched_manual:"Manual",opt_sched_interval:"Interval",opt_sched_cron:"cron",
     lbl_interval:"Interval (seconds)",lbl_cron:"Cron (min hour day month weekday)",hint_cron:"e.g. \"0 2 * * *\" = daily 2:00",
@@ -479,8 +496,8 @@ function applyI18n(){
     "logs-title":"logs_title","btn-refresh-logs":"btn_refresh_logs",
     "job-modal-title":"job_modal_title_new",
     "lbl-job-name":"lbl_job_name","lbl-job-dl-remote":"lbl_job_dl_remote","btn-browse-dl":"btn_browse_dl",
-    "lbl-job-dl-path":"lbl_job_dl_path","lbl-job-url":"lbl_job_url",
-    "lbl-job-ups":"lbl_job_ups","hint-ups":"hint_ups",
+    "lbl-job-dl-path":"lbl_job_dl_path","lbl-job-url":"lbl_job_url","btn-auto-link":"btn_auto_link","hint-url":"hint_url",
+    "lbl-job-ups":"lbl_job_ups","hint-ups":"hint_ups","btn-add-target":"btn_add_target",
     "opt-mode-full":"opt_mode_full","opt-mode-incremental":"opt_mode_incremental","opt-mode-addonly":"opt_mode_addonly",
     "opt-sched-manual":"opt_sched_manual","opt-sched-interval":"opt_sched_interval","opt-sched-cron":"opt_sched_cron",
     "lbl-interval":"lbl_interval","lbl-cron":"lbl_cron","hint-cron":"hint_cron",
@@ -498,7 +515,6 @@ function applyI18n(){
   helpList.innerHTML = helpItems.map(h=>"<li>"+h+"</li>").join("");
   // textarea placeholders
   document.getElementById("remote-conf").placeholder = "# [webdav]\ntype = webdav\nurl = https://...\nuser = ...\npass = ...\n# [aliyun]\ntype = alist\n...";
-  document.getElementById("f-ups").placeholder = '[{"remote":"gdrive:","path":"/mirror/photos"}]';
   document.getElementById("f-excludes").placeholder = "*.tmp\n*.log";
   document.getElementById("f-maxsize").placeholder = "";
   // re-render jobs if loaded
@@ -588,11 +604,12 @@ async function fillRemoteSelect(){
 }
 function resetJobModal(){
   sel('f-name').value=''; sel('f-dl-path').value=''; sel('f-dl-url').value='';
-  sel('f-ups').value='';
   sel('f-mode').value='full'; sel('f-schedule').value='manual'; sel('f-bidir').value='0';
   sel('f-maxsize').value=''; sel('f-excludes').value='';
   sel('f-interval').value='300'; sel('f-cron').value='*/30 * * * *';
   sel('job-modal-title').textContent=t("job_modal_title_new"); jobBeingEdited=null;
+  document.getElementById('target-list').innerHTML='';
+  addTargetRow();  // 默认一个空目标行
   showScheduleFields(); fillRemoteSelect().then(()=>{ if(dlRemoteSel) sel('f-dl-remote').value=dlRemoteSel; });
 }
 function openJobModal(){ resetJobModal(); sel('job-modal').style.display='flex'; }
@@ -605,14 +622,109 @@ function showScheduleFields(){
 sel('f-schedule').onchange=showScheduleFields;
 sel('f-dl-remote').onchange=()=>{ dlRemoteSel=sel('f-dl-remote').value; };
 
+// ---- 直链自动获取 ----
+async function autoGetDirectLink(){
+  const remote=sel('f-dl-remote').value;
+  const path=sel('f-dl-path').value;
+  if(!remote){ alert(t("err_no_remote")); return; }
+  const hintEl=sel('hint-url');
+  hintEl.textContent='...'; hintEl.style.color='var(--muted)';
+  try{
+    const r=await get('/api/directlink?remote='+encodeURIComponent(remote)+'&path='+encodeURIComponent(path));
+    sel('f-dl-url').value=r.url;
+    hintEl.textContent=t("auto_link_ok"); hintEl.style.color='var(--ok)';
+  }catch(e){
+    hintEl.textContent=t("auto_link_err")+e.message; hintEl.style.color='var(--err)';
+  }
+}
+
+// ---- 目标图形化列表 ----
+let _remoteOptionsCache=[];
+async function _fillRemoteOptions(selEl, selected){
+  if(!_remoteOptionsCache.length){
+    try{ const d=await get('/api/remotes'); _remoteOptionsCache=d.remotes||[]; }catch(e){ _remoteOptionsCache=[]; }
+  }
+  selEl.innerHTML='<option value="">(选择远程)</option>'+_remoteOptionsCache.map(r=>{
+    const v=r.replace(/:$/,'');
+    return `<option value="${esc(v)}">${esc(v)}</option>`;
+  }).join('');
+  if(selected) selEl.value=selected.replace(/:$/,'');
+}
+function addTargetRow(remote, path){
+  const container=document.getElementById('target-list');
+  const row=document.createElement('div');
+  row.className='row';
+  row.style.cssText='align-items:center;gap:6px;flex-wrap:nowrap';
+  row.innerHTML=`
+    <select class="t-remote" style="flex:0 0 160px"></select>
+    <input type="text" class="t-path" placeholder="/path (留空=源同名)" style="flex:1">
+    <button type="button" class="ghost t-browse" style="white-space:nowrap"></button>
+    <button type="button" class="danger t-del" style="padding:6px 10px">✕</button>
+    <div class="t-browser"></div>
+  `;
+  container.appendChild(row);
+  const selRemote=row.querySelector('.t-remote');
+  const inpPath=row.querySelector('.t-path');
+  _fillRemoteOptions(selRemote, remote);
+  if(path) inpPath.value=path;
+  row.querySelector('.t-browse').textContent=t("btn_target_browse");
+  row.querySelector('.t-browse').onclick=()=>_browseTarget(row, selRemote.value);
+  row.querySelector('.t-del').onclick=()=>{ container.removeChild(row); };
+  return row;
+}
+async function _browseTarget(row, remote){
+  if(!remote){ alert(t("err_no_remote")); return; }
+  const browserBox=row.querySelector('.t-browser');
+  await _browseTargetDir(row, remote, '');
+}
+async function _browseTargetDir(row, remote, path){
+  const browserBox=row.querySelector('.t-browser');
+  try{
+    const d=await get('/api/list?remote='+encodeURIComponent(remote)+'&path='+encodeURIComponent(path));
+    const crumbs=(d.path||'/').split('/').filter(Boolean);
+    let acc=''; let html='<div class="bread"><span>'+t("browse_root")+'</span>';
+    crumbs.forEach(c=>{ acc+='/'+c; html+=`<span>/</span><a class="crumb" data-path="${esc(acc)}">${esc(c)}</a>`; });
+    html+='</div><div style="margin-top:4px">';
+    if(path){
+      const parent=path.split('/').slice(0,-1).join('/');
+      html+=`<div class="dir-item folder nav-up" data-path="${esc(parent)}">${t("browse_up")}</div>`;
+    }
+    (d.dirs||[]).forEach(dd=>{
+      const childPath=(path?path+'/':'')+dd;
+      html+=`<div class="dir-item folder nav-dir" data-path="${esc(childPath)}">📁 ${esc(dd)}</div>`;
+    });
+    html+=`<div class="row" style="margin-top:6px"><button class="primary" type="button" id="btn-use-dir">${t("btn_use_dir")}</button></div></div>`;
+    browserBox.innerHTML=html;
+    // wire events
+    browserBox.querySelectorAll('.crumb').forEach(a=>a.onclick=()=>_browseTargetDir(row, remote, a.dataset.path));
+    browserBox.querySelector('.nav-up')?.addEventListener('click',function(){ _browseTargetDir(row, remote, this.dataset.path); });
+    browserBox.querySelectorAll('.nav-dir').forEach(el=>el.addEventListener('click',function(){ _browseTargetDir(row, remote, this.dataset.path); }));
+    const useBtn=browserBox.querySelector('#btn-use-dir');
+    if(useBtn) useBtn.onclick=()=>{
+      row.querySelector('.t-path').value=path;
+      browserBox.innerHTML='';
+    };
+  }catch(e){ browserBox.innerHTML='<div class="hint">'+t("browsing")+esc(e.message)+'</div>'; }
+}
+function collectTargets(){
+  const ups=[];
+  document.querySelectorAll('#target-list > .row').forEach(row=>{
+    const remote=row.querySelector('.t-remote').value;
+    const path=row.querySelector('.t-path').value;
+    if(remote){
+      const r=remote.match(/:$/)?remote:remote+':';
+      ups.push({remote:r, path:path||'/'});
+    }
+  });
+  return ups;
+}
+
 sel('job-form').onsubmit=async(e)=>{
   e.preventDefault();
   const name=sel('f-name').value.trim();
   const dlRemote=sel('f-dl-remote').value.match(/:$/) ? sel('f-dl-remote').value : sel('f-dl-remote').value+':';
-  const upsRaw=sel('f-ups').value.trim();
-  let ups=[];
-  if(upsRaw){ try{ ups=JSON.parse(upsRaw); }catch(err){ alert('JSON: '+err.message); return; } }
-  else{ ups=[{remote:dlRemote.match(/^[^:]+:/)[0]? dlRemote:'', path:sel('f-dl-path').value||''}]; if(!ups[0].remote){ alert(t("err_no_remote")); return;} }
+  let ups=collectTargets();
+  if(!ups.length){ alert(t("hint_target_empty")); return; }
 
   const dl={
     remote:dlRemote,
@@ -645,7 +757,10 @@ async function editJob(name){
     jobBeingEdited=name; sel('job-modal-title').textContent=t("job_modal_title_edit")+name;
     sel('f-name').value=j.name;
     sel('f-dl-path').value=j.dl.path||''; sel('f-dl-url').value=j.dl.url||'';
-    sel('f-ups').value=JSON.stringify(j.ups||[],null,2);
+    // 清空默认目标行, 用实际目标填充
+    document.getElementById('target-list').innerHTML='';
+    (j.ups||[]).forEach(u=>addTargetRow(u.remote, u.path));
+    if(!(j.ups||[]).length) addTargetRow();
     sel('f-mode').value=j.mode||'full';
     sel('f-schedule').value=(j.dl&&j.dl.schedule)||'manual';
     sel('f-interval').value=(j.dl&&j.dl.interval_seconds)||'300';
