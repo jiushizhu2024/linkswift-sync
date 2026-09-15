@@ -7,3 +7,4 @@ config/jobs.json
 config/rclone.conf
 config/admin.json
 config/settings.json
+config/openlist.json

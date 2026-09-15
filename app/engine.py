@@ -136,12 +136,48 @@ def obscure_password(password: str) -> str:
 
 
 def add_webdav_remote(name: str, url: str, user: str, password: str) -> None:
-    """向 rclone.conf 追加一个 WebDAV 远程。用于接入 OpenList/AList 的 DAV 服务。"""
+    """向 rclone.conf 追加一个 WebDAV 远程。用于接入 OpenList/AList 的 DAV 服务。
+    同时把明文凭据保存到 openlist.json, 供后续调用 AList API 获取直链。"""
     obscured = obscure_password(password) if password else ""
     section = f"\n[{name}]\ntype = webdav\nurl = {url}\nvendor = other\nuser = {user}\npass = {obscured}\n"
     conf = Path(REMOTES_FILE)
     conf.parent.mkdir(parents=True, exist_ok=True)
     conf.write_text(conf.read_text(encoding="utf-8") + section, encoding="utf-8")
+    # 保存 AList API 凭据(明文, 因为 API 需要明文 token)
+    _save_openlist_meta(name, url, user, password)
+
+
+def _save_openlist_meta(name: str, url: str, user: str, password: str) -> None:
+    """保存 OpenList/AList 连接信息到 openlist.json, 供 API 调用获取直链。"""
+    meta_file = CONFIG_DIR / "openlist.json"
+    data = {}
+    if meta_file.exists():
+        try:
+            data = json.loads(meta_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    # 从 DAV url 推导 AList API base url (去掉 /dav 后缀)
+    api_url = url.rstrip("/")
+    if api_url.endswith("/dav"):
+        api_url = api_url[:-4]
+    data[name] = {"api_url": api_url, "dav_url": url, "user": user, "pass": password}
+    meta_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        os.chmod(meta_file, 0o600)
+    except OSError:
+        pass
+
+
+def _get_openlist_meta(name: str) -> dict[str, str] | None:
+    """读取 OpenList/AList 连接信息。"""
+    meta_file = CONFIG_DIR / "openlist.json"
+    if not meta_file.exists():
+        return None
+    try:
+        data = json.loads(meta_file.read_text(encoding="utf-8"))
+        return data.get(name)
+    except Exception:
+        return None
 
 
 def test_remote(remote: str, path: str = "") -> dict[str, Any]:
@@ -157,8 +193,21 @@ def test_remote(remote: str, path: str = "") -> dict[str, Any]:
 
 
 def get_direct_link(remote: str, path: str = "") -> str:
-    """用 rclone link 获取直链(适用于支持分享/直链的后端如 webdav)。
-    返回直链 URL; 后端不支持则抛异常。"""
+    """获取文件直链。
+
+    策略:
+    1) 如果该 remote 是 OpenList/AList 的 WebDAV 远程, 调用 AList HTTP API
+       (POST /api/fs/link) 获取直链 — 这是 LinkSwift 脚本获取直链的原理,
+       AList 后端实现了百度网盘等驱动的直链获取逻辑。
+    2) 否则回退到 rclone link (仅支持 GDrive/OneDrive 等原生后端)。
+    """
+    name = remote.rstrip(":")
+    meta = _get_openlist_meta(name)
+
+    if meta:
+        return _alist_get_link(meta, path)
+
+    # 回退: rclone link (对 webdav 不支持, 但对 gdrive/onedrive 可用)
     target = remote if remote.endswith(":") else remote + ":"
     if path:
         target = target + path.lstrip("/")
@@ -169,6 +218,90 @@ def get_direct_link(remote: str, path: str = "") -> str:
     if not url:
         raise RuntimeError("rclone link 返回空(该后端可能不支持直链)")
     return url
+
+
+def _alist_get_link(meta: dict[str, str], path: str) -> str:
+    """调用 AList/OpenList API 获取直链。
+
+    AList API: POST /api/fs/link  body: {"path": "/xxx", "password": ""}
+    返回: {"code": 200, "data": {"url": "https://...", "header": {...}}}
+
+    这就是 LinkSwift 浏览器脚本获取直链的方式 — AList 后端调用对应
+    网盘驱动(百度网盘/阿里云盘等)的直链接口, 返回真实下载 URL。
+    """
+    import urllib.request
+    import urllib.error
+
+    api_url = meta.get("api_url", "").rstrip("/")
+    user = meta.get("user", "")
+    password = meta.get("pass", "")
+
+    # 规范化路径: AList 期望绝对路径如 /百度网盘/xxx
+    alist_path = path if path.startswith("/") else "/" + path
+
+    # 获取 AList token (如果需要登录)
+    token = ""
+    if user:
+        token = _alist_get_token(api_url, user, password)
+
+    # 调用 /api/fs/link
+    payload = json.dumps({"path": alist_path, "password": ""}).encode("utf-8")
+    req = urllib.request.Request(
+        f"{api_url}/api/fs/link",
+        data=payload,
+        method="POST",
+    )
+    req.add_header("Content-Type", "application/json")
+    if token:
+        req.add_header("Authorization", token)
+
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"AList API /api/fs/link HTTP {e.code}: {body[-300:]}")
+    except Exception as e:
+        raise RuntimeError(f"AList API 调用失败: {e}")
+
+    if result.get("code") != 200:
+        raise RuntimeError(
+            f"AList API 返回错误: code={result.get('code')} message={result.get('message', '')}"
+        )
+    data = result.get("data", {})
+    url = data.get("url", "")
+    if not url:
+        raise RuntimeError("AList API 返回空直链")
+    return url
+
+
+def _alist_get_token(api_url: str, user: str, password: str) -> str:
+    """调用 AList /api/auth/login 获取 JWT token。"""
+    import urllib.request
+    import urllib.error
+
+    payload = json.dumps(
+        {"username": user, "password": password}
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        f"{api_url.rstrip('/')}/api/auth/login",
+        data=payload,
+        method="POST",
+    )
+    req.add_header("Content-Type", "application/json")
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        raise RuntimeError(f"AList 登录失败: {e}")
+
+    if result.get("code") != 200:
+        raise RuntimeError(
+            f"AList 登录错误: code={result.get('code')} message={result.get('message', '')}"
+        )
+    token = result.get("data", {}).get("token", "")
+    return token
 
 
 def remove_remote(name: str) -> None:
@@ -189,6 +322,16 @@ def remove_remote(name: str) -> None:
             continue
         out.append(line)
     conf.write_text("\n".join(out).rstrip("\n") + "\n", encoding="utf-8")
+    # 同时清理 openlist.json 中的凭据
+    meta_file = CONFIG_DIR / "openlist.json"
+    if meta_file.exists():
+        try:
+            data = json.loads(meta_file.read_text(encoding="utf-8"))
+            if name in data:
+                del data[name]
+                meta_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
 
 
 def check_remotes(remotes: list[str]) -> None:
