@@ -217,17 +217,20 @@ def _parse_rclone_section(name: str) -> dict[str, str] | None:
 
 
 def _reveal_password(obscured: str) -> str:
-    """用 rclone obscure --reveal 解密 rclone.conf 中的 pass 字段。"""
+    """用 rclone reveal 解密 rclone.conf 中的 pass 字段。"""
     if not obscured:
         return ""
-    p = run(["rclone", "obscure", "--reveal", obscured])
+    # rclone v1.62+ 使用 rclone reveal
+    p = run(["rclone", "reveal", obscured])
     if p.returncode == 0:
         return p.stdout.strip()
-    # rclone obscure --reveal 在某些版本可能不支持, 尝试 rclone reveal
-    p2 = run(["rclone", "reveal", obscured])
+    # 旧版 rclone 可能用 rclone obscure --reveal
+    p2 = run(["rclone", "obscure", "--reveal", obscured])
     if p2.returncode == 0:
         return p2.stdout.strip()
-    raise RuntimeError(f"rclone 解密密码失败: {p.stderr[-200:].strip()}")
+    raise RuntimeError(
+        f"rclone 解密密码失败: {p.stderr[-200:].strip()}"
+    )
 
 
 def get_direct_link(remote: str, path: str = "") -> str:
