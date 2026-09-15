@@ -125,9 +125,20 @@ def list_remotes() -> list[str]:
     return p.stdout.split()
 
 
+def obscure_password(password: str) -> str:
+    """用 rclone obscure 加密密码, rclone.conf 的 pass 字段必须是混淆后的值。"""
+    if not password:
+        return ""
+    p = run(["rclone", "obscure", password])
+    if p.returncode != 0:
+        raise RuntimeError(f"rclone obscure 失败: {p.stderr[-200:]}")
+    return p.stdout.strip()
+
+
 def add_webdav_remote(name: str, url: str, user: str, password: str) -> None:
     """向 rclone.conf 追加一个 WebDAV 远程。用于接入 OpenList/AList 的 DAV 服务。"""
-    section = f"\n[{name}]\ntype = webdav\nurl = {url}\nvendor = other\nuser = {user}\npass = {password}\n"
+    obscured = obscure_password(password) if password else ""
+    section = f"\n[{name}]\ntype = webdav\nurl = {url}\nvendor = other\nuser = {user}\npass = {obscured}\n"
     conf = Path(REMOTES_FILE)
     conf.parent.mkdir(parents=True, exist_ok=True)
     conf.write_text(conf.read_text(encoding="utf-8") + section, encoding="utf-8")

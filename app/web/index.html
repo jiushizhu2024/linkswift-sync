@@ -5,32 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LinkSwift-sync 控制台</title>
 <style>
+  /* ---- 亮色主题 ---- */
   :root{
     --bg:#f1f5f9; --panel:#ffffff; --border:#cbd5e1; --text:#0f172a; --muted:#64748b;
     --accent:#2563eb; --accent-2:#1d4ed8; --ok:#16a34a; --err:#dc2626; --warn:#d97706;
-    --radius:8px;
+    --radius:8px; --input-bg:#fff; --log-bg:#0f172a; --log-text:#e2e8f0;
+    --modal-mask:rgba(15,23,42,.45); --hover-bg:#e2e8f0; --badge-idle-bg:#f1f5f9; --badge-idle-text:#475569;
+  }
+  /* ---- 暗色主题 ---- */
+  [data-theme="dark"]{
+    --bg:#0f172a; --panel:#1e293b; --border:#334155; --text:#e2e8f0; --muted:#94a3b8;
+    --accent:#3b82f6; --accent-2:#60a5fa; --ok:#22c55e; --err:#ef4444; --warn:#f59e0b;
+    --input-bg:#1e293b; --log-bg:#020617; --log-text:#cbd5e1;
+    --modal-mask:rgba(0,0,0,.65); --hover-bg:#334155; --badge-idle-bg:#1e293b; --badge-idle-text:#94a3b8;
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text)}
-  header{background:#fff;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);transition:background .2s,color .2s}
+  header{background:var(--panel);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
   header h1{font-size:18px;margin:0;color:var(--accent-2)}
   header .sub{color:var(--muted);font-size:13px}
-  nav{display:flex;gap:8px;margin-left:auto}
+  nav{display:flex;gap:8px;margin-left:auto;align-items:center}
   nav button{background:none;border:0;color:var(--muted);padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:14px}
   nav button.active{background:var(--accent);color:#fff}
-  nav button:hover:not(.active){background:#e2e8f0}
+  nav button:hover:not(.active){background:var(--hover-bg)}
   main{max-width:1100px;margin:24px auto;padding:0 20px}
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
   .panel h2{margin:0 0 14px;font-size:16px;color:var(--text)}
   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
   label{font-size:13px;color:var(--muted)}
-  input[type=text],textarea,select{font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;color:var(--text)}
-  input[type=text]:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  input[type=text],input[type=password],textarea,select{font-size:14px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--input-bg);color:var(--text)}
+  input[type=text]:focus,input[type=password]:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
   button.primary{background:var(--accent);color:#fff;border:0;padding:8px 16px;border-radius:var(--radius);cursor:pointer;font-size:14px}
   button.primary:hover{background:var(--accent-2)}
-  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--border);padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:13px}
-  button.ghost:hover{border-color:var(--accent)}
-  button.danger{background:#fff;color:var(--err);border:1px solid var(--border);padding:6px 12px;border-radius:var(--radius);cursor:pointer;font-size:13px}
+  button.ghost{background:var(--panel);color:var(--accent);border:1px solid var(--border);padding:8px 14px;border-radius:var(--radius);cursor:pointer;font-size:13px}
+  button.ghost:hover{border-color:var(--accent);background:var(--hover-bg)}
+  button.danger{background:var(--panel);color:var(--err);border:1px solid var(--border);padding:6px 12px;border-radius:var(--radius);cursor:pointer;font-size:13px}
   table{width:100%;border-collapse:collapse;font-size:14px}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase}
@@ -38,8 +47,8 @@
   .badge.ok{background:#dcfce7;color:#166534}
   .badge.err{background:#fee2e2;color:#991b1b}
   .badge.run{background:#dbeafe;color:#1e40af}
-  .badge.idle{background:#f1f5f9;color:#475569}
-  pre.logs{background:#0f172a;color:#e2e8f0;padding:14px;border-radius:var(--radius);font-size:12px;max-height:420px;overflow:auto;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-all}
+  .badge.idle{background:var(--badge-idle-bg);color:var(--badge-idle-text)}
+  pre.logs{background:var(--log-bg);color:var(--log-text);padding:14px;border-radius:var(--radius);font-size:12px;max-height:420px;overflow:auto;font-family:ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-all}
   .hint{color:var(--muted);font-size:12px;margin-top:6px}
   form .field{margin-bottom:12px}
   form .field label{display:block;margin-bottom:4px}
@@ -49,57 +58,92 @@
   .bread a{color:var(--accent);cursor:pointer}
   .hidden{display:none}
   .dir-item{padding:6px 8px;border-radius:4px;cursor:pointer}
-  .dir-item:hover{background:#e2e8f0}
+  .dir-item:hover{background:var(--hover-bg)}
   .dir-item.file{padding-left:22px;color:var(--muted)}
   .dir-item.folder{font-weight:600}
-  .modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;z-index:50}
-  .modal{background:#fff;border-radius:var(--radius);padding:24px;width:560px;max-width:94vw;max-height:90vh;overflow:auto}
-  .modal h3{margin:0 0 16px}
+  .modal-mask{position:fixed;inset:0;background:var(--modal-mask);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal{background:var(--panel);border-radius:var(--radius);padding:24px;width:560px;max-width:94vw;max-height:90vh;overflow:auto}
+  .modal h3{margin:0 0 16px;color:var(--text)}
   .modal .close{float:right;cursor:pointer;color:var(--muted);font-size:18px}
   .inline{display:inline-flex;align-items:center;gap:6px}
+  code{background:var(--hover-bg);padding:2px 6px;border-radius:4px;font-size:12px}
 </style>
 </head>
 <body>
 
 <!-- 登录遮罩 -->
 <div id="login-overlay" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100">
-  <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:32px;width:360px;max-width:94vw">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:32px;width:360px;max-width:94vw">
     <h2 style="margin:0 0 6px;text-align:center;color:var(--accent-2)">LinkSwift-sync</h2>
-    <p style="text-align:center;color:var(--muted);font-size:13px;margin:0 0 24px">请登录控制台</p>
-    <form id="login-form">
-      <div class="field"><label>用户名</label><input type="text" id="login-user" required style="width:100%"></div>
-      <div class="field"><label>密码</label><input type="password" id="login-pass" required style="width:100%"></div>
-      <button type="submit" class="primary" style="width:100%;padding:10px">登录</button>
+    <p id="login-subtitle" style="text-align:center;color:var(--muted);font-size:13px;margin:0 0 24px"></p>
+    <form id="login-form" autocomplete="off">
+      <div class="field"><label id="lbl-username"></label><input type="text" id="login-user" name="login-user" autocomplete="off" required style="width:100%"></div>
+      <div class="field"><label id="lbl-password"></label><input type="password" id="login-pass" name="login-pass" autocomplete="off" required style="width:100%"></div>
+      <button type="submit" class="primary" style="width:100%;padding:10px" id="btn-login"></button>
       <p id="login-err" style="color:var(--err);font-size:13px;margin:10px 0 0;text-align:center"></p>
     </form>
-    <p class="hint" style="text-align:center;margin-top:16px">默认 admin / admin123 (首登需改密)</p>
+    <p class="hint" id="login-hint" style="text-align:center;margin-top:16px"></p>
   </div>
 </div>
 
 <!-- 强制改密模态 -->
 <div class="modal-mask" id="pw-modal" style="display:none">
   <div class="modal" style="width:420px">
-    <h3 style="margin:0 0 6px">首次登录 — 请修改密码</h3>
-    <p class="hint" style="margin:0 0 16px">为安全起见, 首次登录必须修改初始密码 (可同时改用户名)。</p>
-    <form id="pw-form">
-      <div class="field"><label>当前密码</label><input type="password" id="pw-old" required style="width:100%"></div>
-      <div class="field"><label>新用户名</label><input type="text" id="pw-user" style="width:100%"></div>
-      <div class="field"><label>新密码 (至少 6 位)</label><input type="password" id="pw-new" required style="width:100%"></div>
-      <div class="field"><label>确认新密码</label><input type="password" id="pw-confirm" required style="width:100%"></div>
+    <h3 id="pw-modal-title" style="margin:0 0 6px"></h3>
+    <p class="hint" id="pw-modal-desc" style="margin:0 0 16px"></p>
+    <form id="pw-form" autocomplete="off">
+      <div class="field"><label id="lbl-oldpass"></label><input type="password" id="pw-old" autocomplete="off" required style="width:100%"></div>
+      <div class="field"><label id="lbl-newuser"></label><input type="text" id="pw-user" autocomplete="off" style="width:100%"></div>
+      <div class="field"><label id="lbl-newpass"></label><input type="password" id="pw-new" autocomplete="off" required style="width:100%"></div>
+      <div class="field"><label id="lbl-confirmpass"></label><input type="password" id="pw-confirm" autocomplete="off" required style="width:100%"></div>
       <p id="pw-err" style="color:var(--err);font-size:13px;margin:6px 0"></p>
-      <div class="row"><button type="submit" class="primary">修改并登录</button></div>
+      <div class="row"><button type="submit" class="primary" id="btn-pw-submit"></button></div>
+    </form>
+  </div>
+</div>
+
+<!-- 设置模态 -->
+<div class="modal-mask" id="settings-modal" style="display:none">
+  <div class="modal" style="width:460px">
+    <span class="close" onclick="closeSettings()">&times;</span>
+    <h3 id="settings-title" style="margin:0 0 16px"></h3>
+    <div class="field">
+      <label id="lbl-language"></label>
+      <select id="set-lang" style="width:100%">
+        <option value="zh-CN">简体中文</option>
+        <option value="zh-TW">繁體中文</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <div class="field">
+      <label id="lbl-theme"></label>
+      <select id="set-theme" style="width:100%">
+        <option value="light" id="opt-theme-light"></option>
+        <option value="dark" id="opt-theme-dark"></option>
+      </select>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+    <h3 style="margin:0 0 10px" id="settings-change-pw-title"></h3>
+    <form id="settings-pw-form" autocomplete="off">
+      <div class="field"><label id="lbl-pw-old"></label><input type="password" id="spw-old" autocomplete="off" required style="width:100%"></div>
+      <div class="field"><label id="lbl-pw-new-user"></label><input type="text" id="spw-new-user" autocomplete="off" style="width:100%"></div>
+      <div class="field"><label id="lbl-pw-new"></label><input type="password" id="spw-new" autocomplete="off" required style="width:100%"></div>
+      <div class="field"><label id="lbl-pw-confirm"></label><input type="password" id="spw-confirm" autocomplete="off" required style="width:100%"></div>
+      <p id="spw-err" style="color:var(--err);font-size:13px;margin:6px 0"></p>
+      <button type="submit" class="danger" id="btn-spw-submit" style="padding:8px 16px"></button>
     </form>
   </div>
 </div>
 
 <header>
   <h1>LinkSwift-sync</h1>
-  <span class="sub">跨网盘高速传输网关 · 控制台</span>
+  <span class="sub" id="header-sub"></span>
   <nav>
-    <button data-tab="jobs" class="active">任务</button>
-    <button data-tab="remotes">网盘账号</button>
-    <button data-tab="logs">运行日志</button>
-    <button onclick="doLogout()" style="color:var(--err)">退出登录</button>
+    <button data-tab="jobs" class="active" id="nav-jobs"></button>
+    <button data-tab="remotes" id="nav-remotes"></button>
+    <button data-tab="logs" id="nav-logs"></button>
+    <button onclick="openSettings()" id="nav-settings">⚙️</button>
+    <button onclick="doLogout()" style="color:var(--err)" id="nav-logout"></button>
   </nav>
 </header>
 <main>
@@ -107,26 +151,20 @@
   <section id="tab-jobs">
     <div class="panel">
       <div class="row">
-        <h2 style="margin:0">同步任务</h2>
+        <h2 style="margin:0" id="jobs-title"></h2>
         <div style="margin-left:auto" class="row">
-          <button class="primary" onclick="openJobModal()">+ 新建任务</button>
-          <button class="ghost" onclick="refreshAll()">刷新</button>
+          <button class="primary" onclick="openJobModal()" id="btn-new-job"></button>
+          <button class="ghost" onclick="refreshAll()" id="btn-refresh"></button>
         </div>
       </div>
       <table>
-        <thead><tr><th>名称</th><th>源</th><th>目标</th><th>模式</th><th>双向</th><th>定时</th><th>状态</th><th></th></tr></thead>
-        <tbody id="job-rows"><tr><td colspan="8" class="hint">加载中…</td></tr></tbody>
+        <thead><tr><th id="th-name"></th><th id="th-source"></th><th id="th-target"></th><th id="th-mode"></th><th id="th-bidir"></th><th id="th-schedule"></th><th id="th-status"></th><th></th></tr></thead>
+        <tbody id="job-rows"></tbody>
       </table>
     </div>
     <div class="panel">
-      <h2>任务说明</h2>
-      <ul class="hint" style="font-size:13px;line-height:1.8">
-        <li><b>源</b>：一个网盘远程 + 目录（也可填直链 url，交给 aria2 多线程断点下载）。</li>
-        <li><b>目标</b>：一个或多个网盘远程，默认取与源同名目录。</li>
-        <li><b>模式</b>：全量（目标镜像源，删除多余）/ 增量（仅新增更新，不删除）。</li>
-        <li><b>双向</b>：开启后源↔目标互为镜像（需单一目标）。</li>
-        <li><b>定时</b>：手动一次性 / 周期 interval / cron 表达式。</li>
-        <li>所有传输均断点续传（rclone .partial / aria2 .aria2，缓存卷持久化）。</li>
+      <h2 id="jobs-help-title"></h2>
+      <ul class="hint" style="font-size:13px;line-height:1.8" id="jobs-help-list">
       </ul>
     </div>
   </section>
@@ -134,31 +172,31 @@
   <!-- REMOTES TAB -->
   <section id="tab-remotes" class="hidden">
     <div class="panel">
-      <h2>🌐 一键接入 OpenList / AList (WebDAV)</h2>
-      <p class="hint">最快的方式：填你已有 OpenList（或 AList）的 DAV 地址 + 账号密码，即可把 OpenList 挂载的所有网盘纳入管理（类似 taoSync 接入 OpenList 引擎）。默认 DAV 路径为 <code>/dav</code>（如 <code>http://openlist:5244/dav</code>）。</p>
+      <h2 id="remotes-openlist-title"></h2>
+      <p class="hint" id="remotes-openlist-desc"></p>
       <div class="grid">
-        <div class="field"><label>远程名称</label><input type="text" id="ol-name" value="openlist" style="width:100%"></div>
-        <div class="field"><label>DAV 地址</label><input type="text" id="ol-url" placeholder="http://openlist:5244/dav" style="width:100%"></div>
-        <div class="field"><label>用户名</label><input type="text" id="ol-user" style="width:100%"></div>
-        <div class="field"><label>密码</label><input type="password" id="ol-pass" style="width:100%"></div>
+        <div class="field"><label id="lbl-ol-name"></label><input type="text" id="ol-name" value="openlist" style="width:100%"></div>
+        <div class="field"><label id="lbl-ol-url"></label><input type="text" id="ol-url" placeholder="http://openlist:5244/dav" style="width:100%"></div>
+        <div class="field"><label id="lbl-ol-user"></label><input type="text" id="ol-user" style="width:100%"></div>
+        <div class="field"><label id="lbl-ol-pass"></label><input type="password" id="ol-pass" style="width:100%"></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <button class="primary" onclick="addOpenList()">连接 OpenList</button>
+        <button class="primary" onclick="addOpenList()" id="btn-connect-openlist"></button>
         <span id="ol-result" class="hint"></span>
       </div>
       <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
-      <h2>网盘账号 / Cookie 配置（高级，手动编辑 rclone.conf）</h2>
-      <p class="hint">此处即 <code>rclone.conf</code>。支持所有 rclone 后端（百度/阿里/Google Drive/OneDrive/S3/WebDAV/AList 等）。Cookie 类网盘填入对应驱动字段即可。也可在任意机器 <code>rclone config</code> 生成后整段粘贴这里。</p>
+      <h2 id="remotes-raw-title"></h2>
+      <p class="hint" id="remotes-raw-desc"></p>
       <div class="row" style="margin-bottom:12px">
-        <label>已识别远程：</label><span id="remote-names" class="hint">-</span>
-        <button class="ghost" type="button" onclick="loadRemoteRaw()">重新加载</button>
+        <label id="lbl-remotes-known"></label><span id="remote-names" class="hint">-</span>
+        <button class="ghost" type="button" onclick="loadRemoteRaw()" id="btn-reload-remotes"></button>
       </div>
-      <textarea id="remote-conf" rows="16" style="width:100%;font-family:ui-monospace,Consolas,monospace" placeholder="# [webdav]&#10;type = webdav&#10;url = https://...&#10;user = ...&#10;pass = ...&#10;# [aliyun]&#10;type = alist&#10;..."></textarea>
+      <textarea id="remote-conf" rows="16" style="width:100%;font-family:ui-monospace,Consolas,monospace"></textarea>
       <div class="row" style="margin-top:12px">
-        <button class="primary" onclick="saveRemoteRaw()">保存配置</button>
+        <button class="primary" onclick="saveRemoteRaw()" id="btn-save-remotes"></button>
         <span id="remote-save-result" class="hint"></span>
       </div>
-      <p class="hint">保存后，请在「任务」里选择远程 + 浏览目录。</p>
+      <p class="hint" id="remotes-after-save"></p>
     </div>
   </section>
 
@@ -166,10 +204,10 @@
   <section id="tab-logs" class="hidden">
     <div class="panel">
       <div class="row">
-        <h2 style="margin:0">运行日志</h2>
-        <button class="ghost" style="margin-left:auto" onclick="loadLogs()">刷新</button>
+        <h2 style="margin:0" id="logs-title"></h2>
+        <button class="ghost" style="margin-left:auto" onclick="loadLogs()" id="btn-refresh-logs"></button>
       </div>
-      <pre class="logs" id="log-box">加载中…</pre>
+      <pre class="logs" id="log-box"></pre>
     </div>
   </section>
 </main>
@@ -178,79 +216,306 @@
 <div class="modal-mask" id="job-modal">
   <div class="modal">
     <span class="close" onclick="closeJobModal()">&times;</span>
-    <h3 id="job-modal-title">新建任务</h3>
+    <h3 id="job-modal-title"></h3>
     <form id="job-form">
-      <div class="field"><label>任务名称（唯一）</label>
+      <div class="field"><label id="lbl-job-name"></label>
         <input type="text" id="f-name" required style="width:100%"></div>
 
       <div class="grid">
-        <div class="field"><label>源：远程</label>
+        <div class="field"><label id="lbl-job-dl-remote"></label>
           <select id="f-dl-remote" style="width:100%"></select>
-          <button type="button" class="ghost" style="margin-top:6px" onclick="openBrowser('dl')">浏览源目录</button>
+          <button type="button" class="ghost" style="margin-top:6px" onclick="openBrowser('dl')" id="btn-browse-dl"></button>
           <div id="dl-browser"></div>
         </div>
-        <div class="field"><label>源：路径</label>
-          <input type="text" id="f-dl-path" style="width:100%" placeholder="/photos">
+        <div class="field"><label id="lbl-job-dl-path"></label>
+          <input type="text" id="f-dl-path" style="width:100%">
         </div>
       </div>
-      <div class="field"><label>或直链 URL（可选，填了则用 aria2 多线程下载）</label>
-        <input type="text" id="f-dl-url" style="width:100%" placeholder="https://…/file?token=…">
+      <div class="field"><label id="lbl-job-url"></label>
+        <input type="text" id="f-dl-url" style="width:100%">
       </div>
 
-      <div class="field"><label>目标（一个或多个，JSON 数组）</label>
-        <textarea id="f-ups" rows="3" style="width:100%" placeholder='[{"remote":"gdrive:","path":"/mirror/photos"}]'></textarea>
-        <span class="hint">目标 path 留空则默认与源同名目录。</span>
+      <div class="field"><label id="lbl-job-ups"></label>
+        <textarea id="f-ups" rows="3" style="width:100%"></textarea>
+        <span class="hint" id="hint-ups"></span>
       </div>
 
       <div class="grid">
-        <div class="field"><label>同步模式</label>
+        <div class="field"><label id="lbl-job-mode"></label>
           <select id="f-mode">
-            <option value="full">全量（目标=源，删除多余）</option>
-            <option value="incremental">增量（仅新增/更新）</option>
-            <option value="add_only">仅新增</option>
+            <option value="full" id="opt-mode-full"></option>
+            <option value="incremental" id="opt-mode-incremental"></option>
+            <option value="add_only" id="opt-mode-addonly"></option>
           </select>
         </div>
-        <div class="field"><label>定时</label>
+        <div class="field"><label id="lbl-job-schedule"></label>
           <select id="f-schedule">
-            <option value="manual">手动一次性</option>
-            <option value="interval">周期 interval</option>
-            <option value="cron">cron</option>
+            <option value="manual" id="opt-sched-manual"></option>
+            <option value="interval" id="opt-sched-interval"></option>
+            <option value="cron" id="opt-sched-cron"></option>
           </select>
         </div>
       </div>
       <div class="grid">
-        <div class="field hidden" id="f-interval-wrap"><label>间隔（秒）</label>
+        <div class="field hidden" id="f-interval-wrap"><label id="lbl-interval"></label>
           <input type="text" id="f-interval" value="300"></div>
-        <div class="field hidden" id="f-cron-wrap"><label>Cron（分 时 日 月 周）</label>
-          <input type="text" id="f-cron" placeholder="*/30 * * * *"><span class="hint"> 例如 "0 2 * * *" 每天 2:00</span></div>
+        <div class="field hidden" id="f-cron-wrap"><label id="lbl-cron"></label>
+          <input type="text" id="f-cron" placeholder="*/30 * * * *"><span class="hint" id="hint-cron"></span></div>
       </div>
 
       <div class="grid">
-        <div class="field"><label>双向</label>
-          <select id="f-bidir"><option value="0">关闭</option><option value="1">开启（源↔目标）</option></select>
+        <div class="field"><label id="lbl-bidir"></label>
+          <select id="f-bidir"><option value="0" id="opt-bidir-off"></option><option value="1" id="opt-bidir-on"></option></select>
         </div>
-        <div class="field"><label>文件大小上限（bytes，可选）</label>
-          <input type="text" id="f-maxsize" placeholder="留空不限"></div>
+        <div class="field"><label id="lbl-maxsize"></label>
+          <input type="text" id="f-maxsize">
+        </div>
       </div>
-      <div class="field"><label>排除规则（每行一个 rclone --exclude 模式）</label>
-        <textarea id="f-excludes" rows="2" style="width:100%" placeholder="*.tmp&#10;*.log"></textarea>
+      <div class="field"><label id="lbl-excludes"></label>
+        <textarea id="f-excludes" rows="2" style="width:100%"></textarea>
       </div>
       <div class="row">
-        <button type="submit" class="primary">保存</button>
-        <button type="button" class="ghost" onclick="closeJobModal()">取消</button>
+        <button type="submit" class="primary" id="btn-save-job"></button>
+        <button type="button" class="ghost" onclick="closeJobModal()" id="btn-cancel-job"></button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-// ---------- state ----------
-let currentTab='jobs';
+// ==================== i18n ====================
+const I18N = {
+  "zh-CN":{
+    header_sub:"跨网盘高速传输网关 · 控制台",
+    nav_jobs:"任务",nav_remotes:"网盘账号",nav_logout:"退出登录",
+    login_subtitle:"请登录控制台",
+    lbl_username:"用户名",lbl_password:"密码",btn_login:"登录",
+    login_err:"用户名或密码错误",login_hint:"默认 admin / admin123 (首登需改密)",
+    pw_modal_title:"首次登录 — 请修改密码",
+    pw_modal_desc:"为安全起见, 首次登录必须修改初始密码 (可同时改用户名)。",
+    lbl_oldpass:"当前密码",lbl_newuser:"新用户名",lbl_newpass:"新密码 (至少 6 位)",
+    lbl_confirmpass:"确认新密码",btn_pw_submit:"修改并退出",
+    pw_err_mismatch:"两次输入的新密码不一致",pw_err_short:"新密码至少 6 位",
+    pw_changed_logout:"密码已修改, 请用新凭据重新登录",
+    settings_title:"设置",lbl_language:"语言",lbl_theme:"主题",
+    opt_theme_light:"亮色",opt_theme_dark:"暗色",
+    settings_change_pw:"修改用户名和密码",
+    lbl_pw_old:"当前密码",lbl_pw_new_user:"新用户名",lbl_pw_new:"新密码 (至少 6 位)",
+    lbl_pw_confirm:"确认新密码",btn_spw_submit:"修改并退出",
+    jobs_title:"同步任务",btn_new_job:"+ 新建任务",btn_refresh:"刷新",
+    th_name:"名称",th_source:"源",th_target:"目标",th_mode:"模式",th_bidir:"双向",
+    th_schedule:"定时",th_status:"状态",
+    btn_run:"运行",btn_edit:"编辑",btn_del:"删除",badge_running:"运行中",badge_success:"成功",badge_error:"失败",badge_idle:"待命",
+    jobs_help_title:"任务说明",
+    jobs_help:[
+      "<b>源</b>：一个网盘远程 + 目录（也可填直链 url，交给 aria2 多线程断点下载）。",
+      "<b>目标</b>：一个或多个网盘远程，默认取与源同名目录。",
+      "<b>模式</b>：全量（目标镜像源，删除多余）/ 增量（仅新增更新，不删除）。",
+      "<b>双向</b>：开启后源↔目标互为镜像（需单一目标）。",
+      "<b>定时</b>：手动一次性 / 周期 interval / cron 表达式。",
+      "所有传输均断点续传（rclone .partial / aria2 .aria2，缓存卷持久化）。",
+    ],
+    remotes_openlist_title:"🌐 一键接入 OpenList / AList (WebDAV)",
+    remotes_openlist_desc:"最快的方式：填你已有 OpenList（或 AList）的 DAV 地址 + 账号密码，即可把 OpenList 挂载的所有网盘纳入管理。默认 DAV 路径为 /dav（如 http://openlist:5244/dav）。",
+    lbl_ol_name:"远程名称",lbl_ol_url:"DAV 地址",lbl_ol_user:"用户名",lbl_ol_pass:"密码",
+    btn_connect_openlist:"连接 OpenList",openlist_ok:"✓ 已接入, 远程: ",openlist_connecting:"连接中…",
+    remotes_raw_title:"网盘账号 / Cookie 配置（高级，手动编辑 rclone.conf）",
+    remotes_raw_desc:"此处即 rclone.conf。支持所有 rclone 后端。Cookie 类网盘填入对应驱动字段。也可在任意机器 rclone config 生成后整段粘贴。",
+    lbl_remotes_known:"已识别远程：",btn_reload_remotes:"重新加载",
+    btn_save_remotes:"保存配置",remotes_after_save:"保存后，请在「任务」里选择远程 + 浏览目录。",
+    logs_title:"运行日志",btn_refresh_logs:"刷新",
+    job_modal_title_new:"新建任务",job_modal_title_edit:"编辑任务 ",
+    lbl_job_name:"任务名称（唯一）",lbl_job_dl_remote:"源：远程",btn_browse_dl:"浏览源目录",
+    lbl_job_dl_path:"源：路径",lbl_job_url:"或直链 URL（可选，填了则用 aria2 多线程下载）",
+    lbl_job_ups:"目标（一个或多个，JSON 数组）",hint_ups:"目标 path 留空则默认与源同名目录。",
+    opt_mode_full:"全量（目标=源，删除多余）",opt_mode_incremental:"增量（仅新增/更新）",opt_mode_addonly:"仅新增",
+    opt_sched_manual:"手动一次性",opt_sched_interval:"周期 interval",opt_sched_cron:"cron",
+    lbl_interval:"间隔（秒）",lbl_cron:"Cron（分 时 日 月 周）",hint_cron:"例如 \"0 2 * * *\" 每天 2:00",
+    lbl_bidir:"双向",opt_bidir_off:"关闭",opt_bidir_on:"开启（源↔目标）",
+    lbl_maxsize:"文件大小上限（bytes，可选）",lbl_excludes:"排除规则（每行一个 rclone --exclude 模式）",
+    btn_save_job:"保存",btn_cancel_job:"取消",
+    no_jobs:"还没有任务，点击「新建任务」创建。",loading:"加载中…",
+    browsing:"浏览失败: ",confirm_del:"删除任务 ",run_triggered:"已触发任务 ",
+    err_no_remote:"先选择远程",browse_root:"root",browse_up:"⬆ 上级",btn_use_dir:"使用此目录",btn_collapse:"收起",
+    spw_err_mismatch:"两次输入的新密码不一致",spw_err_short:"新密码至少 6 位",
+  },
+  "zh-TW":{
+    header_sub:"跨網盤高速傳輸閘道 · 控制台",
+    nav_jobs:"任務",nav_remotes:"網盤帳號",nav_logout:"登出",
+    login_subtitle:"請登入控制台",
+    lbl_username:"使用者名稱",lbl_password:"密碼",btn_login:"登入",
+    login_err:"使用者名稱或密碼錯誤",login_hint:"預設 admin / admin123 (首登需改密碼)",
+    pw_modal_title:"首次登入 — 請修改密碼",
+    pw_modal_desc:"為安全起見, 首次登入必須修改初始密碼 (可同時改使用者名稱)。",
+    lbl_oldpass:"當前密碼",lbl_newuser:"新使用者名稱",lbl_newpass:"新密碼 (至少 6 位)",
+    lbl_confirmpass:"確認新密碼",btn_pw_submit:"修改並登出",
+    pw_err_mismatch:"兩次輸入的新密碼不一致",pw_err_short:"新密碼至少 6 位",
+    pw_changed_logout:"密碼已修改, 請用新憑證重新登入",
+    settings_title:"設定",lbl_language:"語言",lbl_theme:"佈景主題",
+    opt_theme_light:"亮色",opt_theme_dark:"暗色",
+    settings_change_pw:"修改使用者名稱和密碼",
+    lbl_pw_old:"當前密碼",lbl_pw_new_user:"新使用者名稱",lbl_pw_new:"新密碼 (至少 6 位)",
+    lbl_pw_confirm:"確認新密碼",btn_spw_submit:"修改並登出",
+    jobs_title:"同步任務",btn_new_job:"+ 新建任務",btn_refresh:"重新整理",
+    th_name:"名稱",th_source:"來源",th_target:"目標",th_mode:"模式",th_bidir:"雙向",
+    th_schedule:"定時",th_status:"狀態",
+    btn_run:"執行",btn_edit:"編輯",btn_del:"刪除",badge_running:"執行中",badge_success:"成功",badge_error:"失敗",badge_idle:"待命",
+    jobs_help_title:"任務說明",
+    jobs_help:[
+      "<b>來源</b>：一個網盤遠端 + 目錄（也可填直鏈 url，交給 aria2 多線程斷點下載）。",
+      "<b>目標</b>：一個或多個網盤遠端，預設取與來源同名目錄。",
+      "<b>模式</b>：全量（目標鏡像來源，刪除多餘）/ 增量（僅新增更新，不刪除）。",
+      "<b>雙向</b>：開啟後來源↔目標互為鏡像（需單一目標）。",
+      "<b>定時</b>：手動一次性 / 週期 interval / cron 運算式。",
+      "所有傳輸均斷點續傳（rclone .partial / aria2 .aria2，快取卷持久化）。",
+    ],
+    remotes_openlist_title:"🌐 一鍵接入 OpenList / AList (WebDAV)",
+    remotes_openlist_desc:"最快的方式：填你已有 OpenList（或 AList）的 DAV 位址 + 帳號密碼，即可把 OpenList 掛載的所有網盤納入管理。預設 DAV 路徑為 /dav（如 http://openlist:5244/dav）。",
+    lbl_ol_name:"遠端名稱",lbl_ol_url:"DAV 位址",lbl_ol_user:"使用者名稱",lbl_ol_pass:"密碼",
+    btn_connect_openlist:"連接 OpenList",openlist_ok:"✓ 已接入, 遠端: ",openlist_connecting:"連接中…",
+    remotes_raw_title:"網盤帳號 / Cookie 配置（進階，手動編輯 rclone.conf）",
+    remotes_raw_desc:"此處即 rclone.conf。支援所有 rclone 後端。Cookie 類網盤填入對應驅動欄位。也可在任意機器 rclone config 生成後整段貼上這裡。",
+    lbl_remotes_known:"已識別遠端：",btn_reload_remotes:"重新載入",
+    btn_save_remotes:"儲存配置",remotes_after_save:"儲存後，請在「任務」裡選擇遠端 + 瀏覽目錄。",
+    logs_title:"執行日誌",btn_refresh_logs:"重新整理",
+    job_modal_title_new:"新建任務",job_modal_title_edit:"編輯任務 ",
+    lbl_job_name:"任務名稱（唯一）",lbl_job_dl_remote:"來源：遠端",btn_browse_dl:"瀏覽來源目錄",
+    lbl_job_dl_path:"來源：路徑",lbl_job_url:"或直鏈 URL（可選，填了則用 aria2 多線程下載）",
+    lbl_job_ups:"目標（一個或多個，JSON 陣列）",hint_ups:"目標 path 留空則預設與來源同名目錄。",
+    opt_mode_full:"全量（目標=來源，刪除多餘）",opt_mode_incremental:"增量（僅新增/更新）",opt_mode_addonly:"僅新增",
+    opt_sched_manual:"手動一次性",opt_sched_interval:"週期 interval",opt_sched_cron:"cron",
+    lbl_interval:"間隔（秒）",lbl_cron:"Cron（分 時 日 月 週）",hint_cron:"例如 \"0 2 * * *\" 每天 2:00",
+    lbl_bidir:"雙向",opt_bidir_off:"關閉",opt_bidir_on:"開啟（來源↔目標）",
+    lbl_maxsize:"檔案大小上限（bytes，可選）",lbl_excludes:"排除規則（每行一個 rclone --exclude 模式）",
+    btn_save_job:"儲存",btn_cancel_job:"取消",
+    no_jobs:"還沒有任務，點擊「新建任務」建立。",loading:"載入中…",
+    browsing:"瀏覽失敗: ",confirm_del:"刪除任務 ",run_triggered:"已觸發任務 ",
+    err_no_remote:"先選擇遠端",browse_root:"根目錄",browse_up:"⬆ 上層",btn_use_dir:"使用此目錄",btn_collapse:"收起",
+    spw_err_mismatch:"兩次輸入的新密碼不一致",spw_err_short:"新密碼至少 6 位",
+  },
+  "en":{
+    header_sub:"Cross-cloud high-speed transfer gateway · Console",
+    nav_jobs:"Jobs",nav_remotes:"Cloud Accounts",nav_logout:"Logout",
+    login_subtitle:"Please login to console",
+    lbl_username:"Username",lbl_password:"Password",btn_login:"Login",
+    login_err:"Invalid username or password",login_hint:"Default admin / admin123 (change on first login)",
+    pw_modal_title:"First Login — Change Password",
+    pw_modal_desc:"For security, you must change the default password on first login (username can also be changed).",
+    lbl_oldpass:"Current Password",lbl_newuser:"New Username",lbl_newpass:"New Password (min 6 chars)",
+    lbl_confirmpass:"Confirm New Password",btn_pw_submit:"Change & Logout",
+    pw_err_mismatch:"Passwords do not match",pw_err_short:"Password must be at least 6 characters",
+    pw_changed_logout:"Password changed, please re-login with new credentials",
+    settings_title:"Settings",lbl_language:"Language",lbl_theme:"Theme",
+    opt_theme_light:"Light",opt_theme_dark:"Dark",
+    settings_change_pw:"Change Username & Password",
+    lbl_pw_old:"Current Password",lbl_pw_new_user:"New Username",lbl_pw_new:"New Password (min 6 chars)",
+    lbl_pw_confirm:"Confirm New Password",btn_spw_submit:"Change & Logout",
+    jobs_title:"Sync Jobs",btn_new_job:"+ New Job",btn_refresh:"Refresh",
+    th_name:"Name",th_source:"Source",th_target:"Target",th_mode:"Mode",th_bidir:"Bidir",
+    th_schedule:"Schedule",th_status:"Status",
+    btn_run:"Run",btn_edit:"Edit",btn_del:"Delete",badge_running:"Running",badge_success:"Success",badge_error:"Error",badge_idle:"Idle",
+    jobs_help_title:"Job Help",
+    jobs_help:[
+      "<b>Source</b>: A cloud remote + path (or direct URL for aria2 multi-thread download).",
+      "<b>Target</b>: One or more cloud remotes, default path mirrors source.",
+      "<b>Mode</b>: Full (mirror, delete extras) / Incremental (new+update only).",
+      "<b>Bidirectional</b>: Source↔Target mirror (requires single target).",
+      "<b>Schedule</b>: Manual / interval / cron expression.",
+      "All transfers support resume (rclone .partial / aria2 .aria2, persistent cache).",
+    ],
+    remotes_openlist_title:"🌐 Quick Connect OpenList / AList (WebDAV)",
+    remotes_openlist_desc:"Fastest way: enter your OpenList/AList DAV URL + credentials to manage all mounted clouds. Default DAV path is /dav (e.g. http://openlist:5244/dav).",
+    lbl_ol_name:"Remote Name",lbl_ol_url:"DAV URL",lbl_ol_user:"Username",lbl_ol_pass:"Password",
+    btn_connect_openlist:"Connect OpenList",openlist_ok:"✓ Connected, remotes: ",openlist_connecting:"Connecting…",
+    remotes_raw_title:"Cloud Accounts / Cookie Config (Advanced, edit rclone.conf)",
+    remotes_raw_desc:"This is rclone.conf. Supports all rclone backends. Cookie-based clouds use driver fields. You can also paste from rclone config.",
+    lbl_remotes_known:"Known remotes:",btn_reload_remotes:"Reload",
+    btn_save_remotes:"Save Config",remotes_after_save:"After saving, select remote + browse in Jobs.",
+    logs_title:"Run Logs",btn_refresh_logs:"Refresh",
+    job_modal_title_new:"New Job",job_modal_title_edit:"Edit Job ",
+    lbl_job_name:"Job Name (unique)",lbl_job_dl_remote:"Source: Remote",btn_browse_dl:"Browse Source",
+    lbl_job_dl_path:"Source: Path",lbl_job_url:"Or Direct URL (optional, aria2 multi-thread)",
+    lbl_job_ups:"Targets (one or more, JSON array)",hint_ups:"Empty path defaults to same as source.",
+    opt_mode_full:"Full (mirror, delete extras)",opt_mode_incremental:"Incremental (new/update)",opt_mode_addonly:"Add only",
+    opt_sched_manual:"Manual",opt_sched_interval:"Interval",opt_sched_cron:"cron",
+    lbl_interval:"Interval (seconds)",lbl_cron:"Cron (min hour day month weekday)",hint_cron:"e.g. \"0 2 * * *\" = daily 2:00",
+    lbl_bidir:"Bidirectional",opt_bidir_off:"Off",opt_bidir_on:"On (source↔target)",
+    lbl_maxsize:"Max file size (bytes, optional)",lbl_excludes:"Exclude rules (one rclone --exclude per line)",
+    btn_save_job:"Save",btn_cancel_job:"Cancel",
+    no_jobs:"No jobs yet. Click \"+ New Job\" to create one.",loading:"Loading…",
+    browsing:"Browse failed: ",confirm_del:"Delete job ",run_triggered:"Job triggered: ",
+    err_no_remote:"Select a remote first",browse_root:"root",browse_up:"⬆ Up",btn_use_dir:"Use this dir",btn_collapse:"Collapse",
+    spw_err_mismatch:"Passwords do not match",spw_err_short:"Password must be at least 6 characters",
+  }
+};
+
+let LANG = "zh-CN";
+function t(key){ return (I18N[LANG] && I18N[LANG][key]) || key; }
+
+function applyI18n(){
+  document.documentElement.lang = LANG;
+  const map = {
+    "header-sub":"header_sub","nav-jobs":"nav_jobs","nav-remotes":"nav_remotes","nav-logout":"nav_logout",
+    "login-subtitle":"login_subtitle","lbl-username":"lbl_username","lbl-password":"lbl_password",
+    "btn-login":"btn_login","login-hint":"login_hint",
+    "pw-modal-title":"pw_modal_title","pw-modal-desc":"pw_modal_desc",
+    "lbl-oldpass":"lbl_oldpass","lbl-newuser":"lbl_newuser","lbl-newpass":"lbl_newpass",
+    "lbl-confirmpass":"lbl_confirmpass","btn-pw-submit":"btn_pw_submit",
+    "settings-title":"settings_title","lbl-language":"lbl_language","lbl-theme":"lbl_theme",
+    "opt-theme-light":"opt_theme_light","opt-theme-dark":"opt_theme_dark",
+    "settings-change-pw-title":"settings_change_pw",
+    "lbl-pw-old":"lbl_pw_old","lbl-pw-new-user":"lbl_pw_new_user","lbl-pw-new":"lbl_pw_new",
+    "lbl-pw-confirm":"lbl_pw_confirm","btn-spw-submit":"btn_spw_submit",
+    "jobs-title":"jobs_title","btn-new-job":"btn_new_job","btn-refresh":"btn_refresh",
+    "th-name":"th_name","th-source":"th_source","th-target":"th_target","th-mode":"th_mode",
+    "th-bidir":"th_bidir","th-schedule":"th_schedule","th-status":"th_status",
+    "jobs-help-title":"jobs_help_title",
+    "remotes-openlist-title":"remotes_openlist_title","remotes-openlist-desc":"remotes_openlist_desc",
+    "lbl-ol-name":"lbl_ol_name","lbl-ol-url":"lbl_ol_url","lbl-ol-user":"lbl_ol_user","lbl-ol-pass":"lbl_ol_pass",
+    "btn-connect-openlist":"btn_connect_openlist",
+    "remotes-raw-title":"remotes_raw_title","remotes-raw-desc":"remotes_raw_desc",
+    "lbl-remotes-known":"lbl_remotes_known","btn-reload-remotes":"btn_reload_remotes",
+    "btn-save-remotes":"btn_save_remotes","remotes-after-save":"remotes_after_save",
+    "logs-title":"logs_title","btn-refresh-logs":"btn_refresh_logs",
+    "job-modal-title":"job_modal_title_new",
+    "lbl-job-name":"lbl_job_name","lbl-job-dl-remote":"lbl_job_dl_remote","btn-browse-dl":"btn_browse_dl",
+    "lbl-job-dl-path":"lbl_job_dl_path","lbl-job-url":"lbl_job_url",
+    "lbl-job-ups":"lbl_job_ups","hint-ups":"hint_ups",
+    "opt-mode-full":"opt_mode_full","opt-mode-incremental":"opt_mode_incremental","opt-mode-addonly":"opt_mode_addonly",
+    "opt-sched-manual":"opt_sched_manual","opt-sched-interval":"opt_sched_interval","opt-sched-cron":"opt_sched_cron",
+    "lbl-interval":"lbl_interval","lbl-cron":"lbl_cron","hint-cron":"hint_cron",
+    "lbl-bidir":"lbl_bidir","opt-bidir-off":"opt_bidir_off","opt-bidir-on":"opt_bidir_on",
+    "lbl-maxsize":"lbl_maxsize","lbl-excludes":"lbl_excludes",
+    "btn-save-job":"btn_save_job","btn-cancel-job":"btn_cancel_job",
+  };
+  for(const[id,key]of Object.entries(map)){
+    const el=document.getElementById(id);
+    if(el) el.textContent = t(key);
+  }
+  // help list
+  const helpList = document.getElementById("jobs-help-list");
+  const helpItems = I18N[LANG].jobs_help || [];
+  helpList.innerHTML = helpItems.map(h=>"<li>"+h+"</li>").join("");
+  // textarea placeholders
+  document.getElementById("remote-conf").placeholder = "# [webdav]\ntype = webdav\nurl = https://...\nuser = ...\npass = ...\n# [aliyun]\ntype = alist\n...";
+  document.getElementById("f-ups").placeholder = '[{"remote":"gdrive:","path":"/mirror/photos"}]';
+  document.getElementById("f-excludes").placeholder = "*.tmp\n*.log";
+  document.getElementById("f-maxsize").placeholder = "";
+  // re-render jobs if loaded
+  if(SESSION_TOKEN) loadJobs();
+}
+
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+}
+
+// ==================== state ====================
+let currentTab="jobs";
 let jobBeingEdited=null;
 let dlRemoteSel='';
 
-// ---------- API helpers ----------
-let SESSION_TOKEN = null;  // 内存保存; Cookie 也由浏览器自动带
+// ==================== API helpers ====================
+let SESSION_TOKEN = null;
 
 async function api(path, opts){
   const headers = opts?.headers ? {...opts.headers} : {};
@@ -258,9 +523,8 @@ async function api(path, opts){
   if(opts?.body) headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   const r = await fetch(path, {...(opts||{}), headers});
   const j = await r.json().catch(()=>({}));
-  if(r.status===401){ showLogin(); throw new Error('未登录'); }
+  if(r.status===401){ showLogin(); throw new Error(t("login_err")); }
   if(!r.ok) throw new Error(j.error || ('HTTP '+r.status));
-  // 登录/改密返回里带 token 就存下来
   if(j.token) SESSION_TOKEN = j.token;
   return j;
 }
@@ -269,20 +533,20 @@ const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json
 const put=(p,b)=>api(p,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
 const del=(p)=>api(p,{method:'DELETE'});
 
-// ---------- tabs ----------
-document.querySelectorAll('nav button').forEach(b=>{
+// ==================== tabs ====================
+document.querySelectorAll('nav button[data-tab]').forEach(b=>{
   b.onclick=()=>{currentTab=b.dataset.tab;
-    document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));
-    ['jobs','remotes','logs'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden',t!==currentTab));
+    document.querySelectorAll('nav button[data-tab]').forEach(x=>x.classList.toggle('active',x===b));
+    ['jobs','remotes','logs'].forEach(tab=>document.getElementById('tab-'+tab).classList.toggle('hidden',tab!==currentTab));
     if(currentTab==='remotes') loadRemoteRaw();
     if(currentTab==='logs') loadLogs();
     if(currentTab==='jobs') loadJobs();
   };
 });
 const sel=(id)=>document.getElementById(id);
-const esc=(s)=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=(s)=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-// ---------- jobs ----------
+// ==================== jobs ====================
 async function loadJobs(){
   try{
     const d=await get('/api/jobs');
@@ -290,13 +554,13 @@ async function loadJobs(){
     sel('job-rows').innerHTML = rows.length? rows.map(j=>{
       const st=(d.states&&d.states[j.name])||{status:'idle'};
       const stc={running:'run',success:'ok',error:'err',idle:'idle'}[st.status]||'idle';
-      const stl={running:'运行中',success:'成功',error:'失败',idle:'待命'}[st.status]||'待命';
+      const stl={running:t("badge_running"),success:t("badge_success"),error:t("badge_error"),idle:t("badge_idle")}[st.status]||t("badge_idle");
       const dlU=(j.dl&&j.dl.url)?'直链':'';
       const srcLabel=(j.dl.remote||'')+(j.dl.path||'')+(dlU);
       const ups=(j.ups||[]).map(u=>(u.remote||'')+(u.path||'')).join('<br>');
       const mode={'full':'全量','incremental':'增量','add_only':'仅新增'}[j.mode]||j.mode;
       const sch=(j.dl&&j.dl.schedule)||'manual';
-      const schLbl={'manual':'手动','interval':'每'+(j.dl.interval_seconds||300)+'s','cron':(j.dl.cron||'cron')}[sch]||'手动';
+      const schLbl={'manual':t("opt_sched_manual"),'interval':'每'+(j.dl.interval_seconds||300)+'s','cron':(j.dl.cron||'cron')}[sch]||t("opt_sched_manual");
       return `<tr>
         <td>${esc(j.name)}</td>
         <td>${esc(srcLabel)}</td>
@@ -306,21 +570,21 @@ async function loadJobs(){
         <td>${esc(schLbl)}</td>
         <td><span class="badge ${stc}">${stl}</span></td>
         <td>
-          <button class="ghost" onclick="runJob('${esc(j.name)}')">运行</button>
-          <button class="ghost" onclick="editJob('${esc(j.name)}')">编辑</button>
-          <button class="danger" onclick="delJob('${esc(j.name)}')">删除</button>
+          <button class="ghost" onclick="runJob('${esc(j.name)}')">${t("btn_run")}</button>
+          <button class="ghost" onclick="editJob('${esc(j.name)}')">${t("btn_edit")}</button>
+          <button class="danger" onclick="delJob('${esc(j.name)}')">${t("btn_del")}</button>
         </td></tr>`;
-    }).join('') : '<tr><td colspan="8" class="hint">还没有任务，点击「新建任务」创建。</td></tr>';
-  }catch(e){ sel('job-rows').innerHTML=`<tr><td colspan="8" class="hint">加载失败: ${esc(e.message)}</td></tr>`; }
+    }).join('') : `<tr><td colspan="8" class="hint">${t("no_jobs")}</td></tr>`;
+  }catch(e){ sel('job-rows').innerHTML=`<tr><td colspan="8" class="hint">${t("loading")}: ${esc(e.message)}</td></tr>`; }
 }
-async function runJob(name){ try{ await post(`/api/jobs/${encodeURIComponent(name)}/run`); alert('已触发任务 '+name); }catch(e){ alert(e.message);} }
-async function delJob(name){ if(!confirm('删除任务 '+name+' ?'))return; try{ await del(`/api/jobs/${encodeURIComponent(name)}`); loadJobs(); }catch(e){ alert(e.message);} }
+async function runJob(name){ try{ await post(`/api/jobs/${encodeURIComponent(name)}/run`); alert(t("run_triggered")+name); }catch(e){ alert(e.message);} }
+async function delJob(name){ if(!confirm(t("confirm_del")+name+' ?'))return; try{ await del(`/api/jobs/${encodeURIComponent(name)}`); loadJobs(); }catch(e){ alert(e.message);} }
 function refreshAll(){ loadJobs(); }
 
-// ---------- job modal ----------
+// ==================== job modal ====================
 async function fillRemoteSelect(){
   try{ const d=await get('/api/remotes'); if(d.remotes) sel('f-dl-remote').innerHTML=d.remotes.map(r=>`<option>${esc(r.replace(':',''))}</option>`).join('')||'<option value="">(无远程)</option>';
-  }catch(e){ sel('f-dl-remote').innerHTML=`<option value="">(加载失败)</option>`; }
+  }catch(e){ sel('f-dl-remote').innerHTML=`<option value="">(${t("loading")})</option>`; }
 }
 function resetJobModal(){
   sel('f-name').value=''; sel('f-dl-path').value=''; sel('f-dl-url').value='';
@@ -328,7 +592,7 @@ function resetJobModal(){
   sel('f-mode').value='full'; sel('f-schedule').value='manual'; sel('f-bidir').value='0';
   sel('f-maxsize').value=''; sel('f-excludes').value='';
   sel('f-interval').value='300'; sel('f-cron').value='*/30 * * * *';
-  sel('job-modal-title').textContent='新建任务'; jobBeingEdited=null;
+  sel('job-modal-title').textContent=t("job_modal_title_new"); jobBeingEdited=null;
   showScheduleFields(); fillRemoteSelect().then(()=>{ if(dlRemoteSel) sel('f-dl-remote').value=dlRemoteSel; });
 }
 function openJobModal(){ resetJobModal(); sel('job-modal').style.display='flex'; }
@@ -347,8 +611,8 @@ sel('job-form').onsubmit=async(e)=>{
   const dlRemote=sel('f-dl-remote').value.match(/:$/) ? sel('f-dl-remote').value : sel('f-dl-remote').value+':';
   const upsRaw=sel('f-ups').value.trim();
   let ups=[];
-  if(upsRaw){ try{ ups=JSON.parse(upsRaw); }catch(err){ alert('目标 JSON 格式错误：'+err.message); return; } }
-  else{ ups=[{remote:dlRemote.match(/^[^:]+:/)[0]? dlRemote:'', path:sel('f-dl-path').value||''}]; if(!ups[0].remote){ alert('请选择目标远程'); return;} }
+  if(upsRaw){ try{ ups=JSON.parse(upsRaw); }catch(err){ alert('JSON: '+err.message); return; } }
+  else{ ups=[{remote:dlRemote.match(/^[^:]+:/)[0]? dlRemote:'', path:sel('f-dl-path').value||''}]; if(!ups[0].remote){ alert(t("err_no_remote")); return;} }
 
   const dl={
     remote:dlRemote,
@@ -358,8 +622,6 @@ sel('job-form').onsubmit=async(e)=>{
     interval_seconds: sel('f-schedule').value==='interval'?parseInt(sel('f-interval').value||'300'):undefined,
     cron: sel('f-schedule').value==='cron'?sel('f-cron').value.trim():undefined,
   };
-  // 默认目标 path 与源同名
-  const srcBase=dl.path.split('/').filter(Boolean).pop()||'';
   ups=ups.map(u=>{ if(!u.path){ u.path='/'; } return u; });
 
   const body={
@@ -380,7 +642,7 @@ async function editJob(name){
   try{
     const j=await get('/api/jobs/'+encodeURIComponent(name));
     resetJobModal();
-    jobBeingEdited=name; sel('job-modal-title').textContent='编辑任务 '+name;
+    jobBeingEdited=name; sel('job-modal-title').textContent=t("job_modal_title_edit")+name;
     sel('f-name').value=j.name;
     sel('f-dl-path').value=j.dl.path||''; sel('f-dl-url').value=j.dl.url||'';
     sel('f-ups').value=JSON.stringify(j.ups||[],null,2);
@@ -392,17 +654,16 @@ async function editJob(name){
     sel('f-maxsize').value=j.max_size||'';
     sel('f-excludes').value=(j.excludes||[]).join('\n');
     showScheduleFields();
-    // select remote
     dlRemoteSel=(j.dl.remote||'').replace(/:$/,'');
     fillRemoteSelect().then(()=>{ sel('f-dl-remote').value=dlRemoteSel; });
     sel('job-modal').style.display='flex';
   }catch(e){ alert(e.message); }
 }
 
-// ---------- remote browser ----------
+// ==================== remote browser ====================
 async function openBrowser(which){
   const remote=sel('f-dl-remote').value;
-  if(!remote){ alert('先选择远程'); return; }
+  if(!remote){ alert(t("err_no_remote")); return; }
   await browseRemote(which, remote, '', true);
 }
 let browseCtx=null;
@@ -413,40 +674,39 @@ async function browseRemote(which, remote, path, open){
     const d=await get('/api/list?remote='+encodeURIComponent(remote)+'&path='+encodeURIComponent(path));
     const crumbs=(d.path||'/').split('/').filter(Boolean);
     let acc='';
-    let html=`<div class="bread"><span>root</span>`;
+    let html=`<div class="bread"><span>${t("browse_root")}</span>`;
     crumbs.forEach((c,i)=>{ acc+='/'+c; html+=`<span>/</span><a onclick="browseRemote('${which}','${remote}','${acc}')">${esc(c)}</a>`; });
     html+=`</div><div style="margin-top:8px">`;
-    if(path) html+=`<div class="dir-item folder" onclick="browseRemote('${which}','${remote}','${path.split('/').slice(0,-1).join('/')}')">⬆ 上级</div>`;
+    if(path) html+=`<div class="dir-item folder" onclick="browseRemote('${which}','${remote}','${path.split('/').slice(0,-1).join('/')}')">${t("browse_up")}</div>`;
     (d.dirs||[]).forEach(dd=>{ html+=`<div class="dir-item folder" onclick="browseRemote('${which}','${remote}','${(path?path+('/') : '')+dd}')">📁 ${esc(dd)}</div>`; });
     (d.files||[]).slice(0,50).forEach(f=>{ html+=`<div class="dir-item file">📄 ${esc(f.name)} (${fmt(f.size)})</div>`; });
     html+=`<div class="row" style="margin-top:10px">
-        <button class="primary" type="button" onclick="usePath('${which}','${remote}','${esc(path)}')">使用此目录</button>
-        <button class="ghost" type="button" onclick="closeBrowse('${which}')">收起</button></div></div>`;
+        <button class="primary" type="button" onclick="usePath('${which}','${remote}','${esc(path)}')">${t("btn_use_dir")}</button>
+        <button class="ghost" type="button" onclick="closeBrowse('${which}')">${t("btn_collapse")}</button></div></div>`;
     target.innerHTML=html;
-  }catch(e){ target.innerHTML=`<div class="hint">浏览失败: ${esc(e.message)}</div>`; }
+  }catch(e){ target.innerHTML=`<div class="hint">${t("browsing")}${esc(e.message)}</div>`; }
 }
 function usePath(which, remote, path){
   if(which==='dl'){ sel('f-dl-remote').value=remote; dlRemoteSel=remote.replace(/:$/,''); sel('f-dl-path').value=path; }
-  else { /* up 浏览器简化, 目标用 JSON 手填 */ }
 }
 function closeBrowse(which){
   document.getElementById(which==='dl'?'dl-browser':'up-browser').innerHTML='';
 }
 function fmt(n){ if(n==null) return ''; if(n<1024) return n+'B'; if(n<1048576) return (n/1024).toFixed(1)+'KB'; if(n<1073741824) return (n/1048576).toFixed(1)+'MB'; return (n/1073741824).toFixed(2)+'GB'; }
 
-// ---------- remotes ----------
+// ==================== remotes ====================
 async function addOpenList(){
   const body={name:sel('ol-name').value||'openlist', url:sel('ol-url').value, user:sel('ol-user').value, pass:sel('ol-pass').value};
-  sel('ol-result').textContent='连接中…';
+  sel('ol-result').textContent=t("openlist_connecting");
   try{
     const d=await post('/api/openlist',body);
-    sel('ol-result').textContent='✓ 已接入, 远程: '+(d.remotes||[]).join(', ');
+    sel('ol-result').textContent=t("openlist_ok")+(d.remotes||[]).join(', ');
     refreshRemoteNames(); loadRemoteRaw();
   }catch(e){ sel('ol-result').textContent='失败: '+e.message; }
 }
 async function loadRemoteRaw(){
   try{ const d=await get('/api/remotes/raw'); sel('remote-conf').value=d.content||''; }
-  catch(e){ sel('remote-conf').value='# 加载失败: '+e.message; }
+  catch(e){ sel('remote-conf').value='# '+t("browsing")+e.message; }
   refreshRemoteNames();
 }
 async function refreshRemoteNames(){
@@ -455,21 +715,75 @@ async function refreshRemoteNames(){
 }
 async function saveRemoteRaw(){
   const content=sel('remote-conf').value;
-  try{ 
+  try{
     const d=await put('/api/remotes/raw',{content});
-    sel('remote-save-result').textContent='已保存 ✓ 识别远程: '+(d.remotes||[]).join(', ');
+    sel('remote-save-result').textContent='✓ '+(d.remotes||[]).join(', ');
     refreshRemoteNames();
-  }catch(e){ sel('remote-save-result').textContent='保存失败: '+e.message; }
+  }catch(e){ sel('remote-save-result').textContent=e.message; }
 }
 
-// ---------- logs ----------
+// ==================== logs ====================
 async function loadLogs(){
   try{ const d=await get('/api/logs?lines=300'); sel('log-box').textContent=(d.logs||[]).join('\n')||'(暂无日志)'; }
-  catch(e){ sel('log-box').textContent='加载失败: '+e.message; }
+  catch(e){ sel('log-box').textContent=t("loading")+': '+e.message; }
 }
 
-// ---------- auth ----------
+// ==================== settings ====================
+function openSettings(){
+  sel('set-lang').value = LANG;
+  sel('set-theme').value = document.documentElement.getAttribute('data-theme') || 'light';
+  // pre-fill new username with current
+  sel('spw-old').value=''; sel('spw-new').value=''; sel('spw-confirm').value=''; sel('spw-err').textContent='';
+  sel('settings-modal').style.display='flex';
+}
+function closeSettings(){
+  sel('settings-modal').style.display='none';
+}
+sel('set-lang').onchange = async()=>{
+  LANG = sel('set-lang').value;
+  applyI18n();
+  try{ await put('/api/settings', {language: LANG}); }catch(e){}
+};
+sel('set-theme').onchange = async()=>{
+  const theme = sel('set-theme').value;
+  applyTheme(theme);
+  try{ await put('/api/settings', {theme: theme}); }catch(e){}
+};
+
+// Settings change-password form
+document.getElementById('settings-pw-form').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const oldPw=sel('spw-old').value;
+  const newPw=sel('spw-new').value;
+  const confirmPw=sel('spw-confirm').value;
+  const newUser=sel('spw-new-user').value;
+  const errEl=sel('spw-err');
+  errEl.textContent='';
+  if(newPw!==confirmPw){ errEl.textContent=t("spw_err_mismatch"); return; }
+  if(newPw.length<6){ errEl.textContent=t("spw_err_short"); return; }
+  try{
+    const r=await fetch('/api/auth/change',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(SESSION_TOKEN||'')},
+      body:JSON.stringify({old_password:oldPw,new_password:newPw,new_username:newUser||undefined})});
+    const j=await r.json();
+    if(!r.ok){ errEl.textContent=j.error||'Error'; return; }
+    // 改密成功 -> 自动退出, 回登录页
+    SESSION_TOKEN=null;
+    closeSettings();
+    // 清除输入
+    sel('spw-old').value=''; sel('spw-new').value=''; sel('spw-confirm').value=''; sel('spw-new-user').value='';
+    showLogin();
+    // 提示
+    sel('login-err').textContent='';
+    sel('login-err').style.color='var(--ok)';
+    sel('login-err').textContent=t("pw_changed_logout");
+    setTimeout(()=>{ sel('login-err').textContent=''; sel('login-err').style.color='var(--err)'; }, 5000);
+  }catch(err){ errEl.textContent=err.message; }
+});
+
+// ==================== auth ====================
 function showLogin(){
+  // 清除可能残留的表单值, 防止浏览器自动填充导致自动提交
+  document.getElementById('login-form').reset();
   document.getElementById('login-overlay').style.display='flex';
 }
 function hideLogin(){
@@ -479,11 +793,14 @@ document.getElementById('login-form').addEventListener('submit', async(e)=>{
   e.preventDefault();
   const u=document.getElementById('login-user').value;
   const p=document.getElementById('login-pass').value;
+  // 密码必须非空且至少触发过手动输入
+  if(!u || !p){ document.getElementById('login-err').textContent=t("login_err"); return; }
   document.getElementById('login-err').textContent='';
+  document.getElementById('login-err').style.color='var(--err)';
   try{
     const d=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
     const j=await d.json();
-    if(!d.ok){ document.getElementById('login-err').textContent=j.error||'登录失败'; return; }
+    if(!d.ok){ document.getElementById('login-err').textContent=j.error||t("login_err"); return; }
     SESSION_TOKEN=j.token;
     hideLogin();
     if(j.must_change_password){ showPwModal(u); } else { loadJobs(); }
@@ -501,25 +818,34 @@ document.getElementById('pw-form').addEventListener('submit', async(e)=>{
   e.preventDefault();
   const oldPw=document.getElementById('pw-old').value;
   const newPw=document.getElementById('pw-new').value;
-  const confirm=document.getElementById('pw-confirm').value;
+  const confirmPw=document.getElementById('pw-confirm').value;
   const newUser=document.getElementById('pw-user').value;
   const errEl=document.getElementById('pw-err');
   errEl.textContent='';
-  if(newPw!==confirm){ errEl.textContent='两次输入的新密码不一致'; return; }
-  if(newPw.length<6){ errEl.textContent='新密码至少 6 位'; return; }
+  if(newPw!==confirmPw){ errEl.textContent=t("pw_err_mismatch"); return; }
+  if(newPw.length<6){ errEl.textContent=t("pw_err_short"); return; }
   try{
     const r=await fetch('/api/auth/change',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+SESSION_TOKEN},
       body:JSON.stringify({old_password:oldPw,new_password:newPw,new_username:newUser})});
     const j=await r.json();
-    if(!r.ok){ errEl.textContent=j.error||'修改失败'; return; }
-    SESSION_TOKEN=j.token;
+    if(!r.ok){ errEl.textContent=j.error||'Error'; return; }
+    // 首次改密成功 -> 自动退出, 回登录页
+    SESSION_TOKEN=null;
     document.getElementById('pw-modal').style.display='none';
-    loadJobs();
+    // 清除表单
+    document.getElementById('login-form').reset();
+    showLogin();
+    // 提示
+    document.getElementById('login-err').style.color='var(--ok)';
+    document.getElementById('login-err').textContent=t("pw_changed_logout");
+    setTimeout(()=>{ document.getElementById('login-err').textContent=''; document.getElementById('login-err').style.color='var(--err)'; }, 5000);
   }catch(err){ errEl.textContent=err.message; }
 });
 async function doLogout(){
   try{ await fetch('/api/auth/logout',{method:'POST',headers:{'Authorization':'Bearer '+(SESSION_TOKEN||'')}}); }catch(e){}
   SESSION_TOKEN=null;
+  // 清除登录表单, 防止浏览器自动填充
+  document.getElementById('login-form').reset();
   showLogin();
 }
 
@@ -537,8 +863,21 @@ async function checkAuthOnLoad(){
   }catch(e){ showLogin(); }
 }
 
-// ---------- init ----------
-checkAuthOnLoad();
+// ==================== settings init ====================
+async function initSettings(){
+  try{
+    const r=await fetch('/api/settings');
+    const s=await r.json();
+    LANG = s.language || 'zh-CN';
+    applyTheme(s.theme || 'light');
+  }catch(e){
+    applyTheme('light');
+  }
+  applyI18n();
+}
+
+// ==================== init ====================
+initSettings().then(()=>checkAuthOnLoad());
 setInterval(()=>{ if(currentTab==='jobs' && SESSION_TOKEN) loadJobs(); },5000);
 </script>
 </body>

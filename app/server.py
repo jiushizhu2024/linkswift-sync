@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import threading
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -59,6 +60,29 @@ def ring_log(msg: str) -> None:
     LOG_RING.append(line)
     if len(LOG_RING) > LOG_MAX:
         LOG_RING[:] = LOG_RING[-LOG_MAX:]
+
+
+# --------------------------------------------------------------------------- #
+# 设置持久化 (语言/主题)
+# --------------------------------------------------------------------------- #
+SETTINGS_FILE = Path(os.environ.get("CONFIG_DIR", "/data/config")) / "settings.json"
+
+_DEFAULT_SETTINGS = {"language": "zh-CN", "theme": "light"}
+
+
+def _load_settings() -> dict[str, Any]:
+    if SETTINGS_FILE.exists():
+        try:
+            d = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+            return {**_DEFAULT_SETTINGS, **d}
+        except Exception:
+            pass
+    return dict(_DEFAULT_SETTINGS)
+
+
+def _save_settings(data: dict[str, Any]) -> None:
+    SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    SETTINGS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 # --------------------------------------------------------------------------- #
@@ -236,6 +260,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == f"{API_PREFIX}/auth/status":
             return self._json(auth.AUTH.status(self._token()))
 
+        # 公开: 读取设置(语言/主题) — 无需登录, 首屏渲染需要
+        if path == f"{API_PREFIX}/settings":
+            return self._json(_load_settings())
+
         # 以下全部需要登录
         if not self._require_auth():
             return
@@ -313,15 +341,8 @@ class Handler(BaseHTTPRequestHandler):
                     new_password=data.get("new_password", ""),
                     new_username=data.get("new_username"),
                 )
-                # 改密成功后旧 session 已失效, 返回新 token 方便前端无感续期
-                login = auth.AUTH.login(result["username"], data.get("new_password", ""))
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Set-Cookie", f"session={login['token']}; Path=/; HttpOnly; SameSite=Strict")
-                body = json.dumps({"ok": True, "username": result["username"], "token": login["token"]}, ensure_ascii=False).encode("utf-8")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
+                # 改密成功后所有旧 session 已失效; 不再自动登录, 要求前端重新登录
+                return self._json({"ok": True, "username": result["username"], "require_relogin": True})
             except ValueError as e:
                 return self._json({"error": str(e)}, 400)
             except Exception as e:
@@ -375,6 +396,15 @@ class Handler(BaseHTTPRequestHandler):
         path = parts.path
         if not self._require_auth():
             return
+        if path == f"{API_PREFIX}/settings":
+            data = self._read_body()
+            cur = _load_settings()
+            if "language" in data:
+                cur["language"] = data["language"]
+            if "theme" in data:
+                cur["theme"] = data["theme"]
+            _save_settings(cur)
+            return self._json({"ok": True, "settings": cur})
         if path == f"{API_PREFIX}/remotes/raw":
             data = self._read_body()
             content = data.get("content", "")
