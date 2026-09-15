@@ -257,10 +257,14 @@ def get_direct_link(remote: str, path: str = "") -> str:
             return _alist_get_link(meta, path)
         # 否则从 rclone.conf 解析 + 解密
         dav_url = vals.get("url", "")
+        # 从 DAV url 推导 AList API base url (去掉 /dav 后缀)
+        api_url = dav_url.rstrip("/")
+        if api_url.endswith("/dav"):
+            api_url = api_url[:-4]
         user = vals.get("user", "")
         plain_pw = _reveal_password(vals.get("pass", ""))
         return _alist_get_link(
-            {"api_url": dav_url, "dav_url": dav_url, "user": user, "pass": plain_pw},
+            {"api_url": api_url, "dav_url": dav_url, "user": user, "pass": plain_pw},
             path,
         )
 
