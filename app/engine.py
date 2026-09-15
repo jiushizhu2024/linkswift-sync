@@ -192,22 +192,76 @@ def test_remote(remote: str, path: str = "") -> dict[str, Any]:
         return {"ok": False, "target": target, "error": str(e)}
 
 
+def _parse_rclone_section(name: str) -> dict[str, str] | None:
+    """从 rclone.conf 解析指定 remote 的所有字段。不存在则返回 None。"""
+    conf = Path(REMOTES_FILE)
+    if not conf.exists():
+        return None
+    lines = conf.read_text(encoding="utf-8").splitlines()
+    current_section = ""
+    vals: dict[str, str] = {}
+    in_target = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            current_section = stripped[1:-1].strip()
+            in_target = (current_section == name)
+            continue
+        if not in_target:
+            continue
+        if "=" not in stripped or stripped.startswith("#"):
+            continue
+        k, _, v = stripped.partition("=")
+        vals[k.strip()] = v.strip()
+    return vals if vals else None
+
+
+def _reveal_password(obscured: str) -> str:
+    """用 rclone obscure --reveal 解密 rclone.conf 中的 pass 字段。"""
+    if not obscured:
+        return ""
+    p = run(["rclone", "obscure", "--reveal", obscured])
+    if p.returncode == 0:
+        return p.stdout.strip()
+    # rclone obscure --reveal 在某些版本可能不支持, 尝试 rclone reveal
+    p2 = run(["rclone", "reveal", obscured])
+    if p2.returncode == 0:
+        return p2.stdout.strip()
+    raise RuntimeError(f"rclone 解密密码失败: {p.stderr[-200:].strip()}")
+
+
 def get_direct_link(remote: str, path: str = "") -> str:
     """获取文件直链。
 
     策略:
-    1) 如果该 remote 是 OpenList/AList 的 WebDAV 远程, 调用 AList HTTP API
-       (POST /api/fs/link) 获取直链 — 这是 LinkSwift 脚本获取直链的原理,
-       AList 后端实现了百度网盘等驱动的直链获取逻辑。
-    2) 否则回退到 rclone link (仅支持 GDrive/OneDrive 等原生后端)。
+    1) 检查 rclone.conf, 如果该 remote 是 webdav 类型(指向 OpenList/AList):
+       - 优先从 openlist.json 读取明文凭据(新创建的远程)
+       - 否则从 rclone.conf 解析, 用 rclone obscure --reveal 解密密码
+       然后调用 AList HTTP API (POST /api/fs/link) 获取直链 —
+       这是 LinkSwift 脚本获取直链的原理, AList 后端实现了
+       百度网盘等驱动的直链获取逻辑。
+    2) 非 webdav 类型 → 回退到 rclone link (GDrive/OneDrive 等)。
     """
     name = remote.rstrip(":")
-    meta = _get_openlist_meta(name)
 
-    if meta:
-        return _alist_get_link(meta, path)
+    # 从 rclone.conf 解析远程配置
+    vals = _parse_rclone_section(name)
+    if vals and vals.get("type", "").lower() == "webdav":
+        # 是 WebDAV 远程 → 走 AList API 路径
+        # 优先使用 openlist.json 中的明文凭据
+        meta = _get_openlist_meta(name)
+        if meta:
+            return _alist_get_link(meta, path)
+        # 否则从 rclone.conf 解析 + 解密
+        dav_url = vals.get("url", "")
+        user = vals.get("user", "")
+        plain_pw = _reveal_password(vals.get("pass", ""))
+        return _alist_get_link(
+            {"api_url": dav_url, "dav_url": dav_url, "user": user, "pass": plain_pw},
+            path,
+        )
 
-    # 回退: rclone link (对 webdav 不支持, 但对 gdrive/onedrive 可用)
+    # 非 webdav → 回退 rclone link
     target = remote if remote.endswith(":") else remote + ":"
     if path:
         target = target + path.lstrip("/")
